@@ -1,0 +1,20 @@
+# Start only Postgres. Use when full stack build fails (e.g. npm ECONNRESET in Docker).
+# Then run backend and frontend on the host:
+#   cd backend && npm run dev
+#   cd frontend && npm run dev
+# Migrate/seed from host: make migrate-local && make seed-local
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: brandqoai
+      POSTGRES_USER: brandqoai
+      POSTGRES_PASSWORD: brandqoai
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:

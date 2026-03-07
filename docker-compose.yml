@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: brandqoai
+      POSTGRES_USER: brandqoai
+      POSTGRES_PASSWORD: brandqoai
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://brandqoai:brandqoai@db:5432/brandqoai?schema=public
+      JWT_SECRET: change-me-in-development
+      PORT: 4000
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://backend:4000
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:
+

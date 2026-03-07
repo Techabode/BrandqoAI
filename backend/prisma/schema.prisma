@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String           @id @default(cuid())
+  email          String           @unique
+  passwordHash   String
+  name           String?
+  timezone       String?          @default("UTC")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  brands         BrandProfile[]
+  socialAccounts SocialAccount[]
+  conversations  ConversationState[]
+}
+
+model BrandProfile {
+  id              String             @id @default(cuid())
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  brandName       String
+  industry        String?
+  targetAudience  String?
+  toneOfVoice     String?
+  keywords        String?
+  contentPillars  String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  preferences     PreferenceProfile?
+  contentIdeas    ContentIdea[]
+  postTemplates   PostTemplate[]
+}
+
+model PreferenceProfile {
+  id                  String        @id @default(cuid())
+  brand               BrandProfile  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId             String        @unique
+  postingFrequency    String?
+  preferredPostingTimes Json?
+  platformPriority    Json?
+  bannedTopics        String?
+  languages           String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  TWITTER
+}
+
+model SocialAccount {
+  id                     String         @id @default(cuid())
+  user                   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                 String
+  platform               SocialPlatform
+  externalPageId         String
+  handle                 String
+  accessTokenEncrypted   String
+  refreshTokenEncrypted  String?
+  tokenExpiresAt         DateTime?
+  scopes                 String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+}
+
+model ContentIdea {
+  id           String       @id @default(cuid())
+  brand        BrandProfile @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId      String
+  title        String
+  description  String?
+  status       IdeaStatus   @default(IDEA)
+  generatedBy  GeneratedBy  @default(AI)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  postTemplates PostTemplate[]
+}
+
+enum IdeaStatus {
+  IDEA
+  APPROVED
+  USED
+}
+
+enum GeneratedBy {
+  AI
+  USER
+}
+
+model PostTemplate {
+  id             String          @id @default(cuid())
+  brand          BrandProfile    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId        String
+  contentIdea    ContentIdea?    @relation(fields: [contentIdeaId], references: [id])
+  contentIdeaId  String?
+  platform       SocialPlatform
+  caption        String
+  imagePrompt    String?
+  imageUrl       String?
+  status         TemplateStatus  @default(DRAFT)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  scheduledPosts ScheduledPost[]
+}
+
+enum TemplateStatus {
+  DRAFT
+  READY
+  SCHEDULED
+}
+
+model ScheduledPost {
+  id             String          @id @default(cuid())
+  postTemplate   PostTemplate    @relation(fields: [postTemplateId], references: [id], onDelete: Cascade)
+  postTemplateId String
+  platform       SocialPlatform
+  scheduledTime  DateTime
+  status         ScheduledStatus @default(PENDING)
+  publishJobId   String?
+  errorMessage   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+enum ScheduledStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+model ConversationState {
+  id            String   @id @default(cuid())
+  user          User?    @relation(fields: [userId], references: [id])
+  userId        String?
+  whatsappPhone String?  @unique
+  currentStep   String?
+  contextJson   Json?
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
