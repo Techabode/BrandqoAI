@@ -14,5 +14,8 @@ export const env = {
   databaseUrl: getEnv("DATABASE_URL"),
   jwtSecret: getEnv("JWT_SECRET"),
   corsOrigin: process.env.CORS_ORIGIN ?? "*",
+  whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN,
+  whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+  whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN,
 };
 

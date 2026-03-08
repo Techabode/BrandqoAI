@@ -3,6 +3,7 @@ import cors from "cors";
 import { env } from "./config/env";
 import { prisma } from "./db/client";
 import { authRouter } from "./modules/auth/authRoutes";
+import { handleWhatsAppWebhook, verifyWhatsAppWebhook } from "./http/whatsappWebhook";
 
 const app = express();
 
@@ -24,6 +25,9 @@ app.get("/health", async (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+
+app.get("/api/whatsapp/webhook", verifyWhatsAppWebhook);
+app.post("/api/whatsapp/webhook", handleWhatsAppWebhook);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   // Generic error handler
