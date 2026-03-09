@@ -12,7 +12,7 @@ services:
       POSTGRES_USER: brandqoai
       POSTGRES_PASSWORD: brandqoai
     ports:
-      - "5432:5432"
+      - "5442:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
 

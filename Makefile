@@ -1,5 +1,5 @@
 COMPOSE = docker compose
-DATABASE_URL = postgresql://brandqoai:brandqoai@localhost:5432/brandqoai?schema=public
+DATABASE_URL = postgresql://brandqoai:brandqoai@localhost:5442/brandqoai?schema=public
 
 .PHONY: up down up-db build logs migrate seed migrate-local seed-local dev db-shell backend-shell
 
@@ -20,6 +20,10 @@ logs:
 
 dev:
 	$(COMPOSE) up --build
+
+install:
+	$(COMPOSE) run --rm backend npm install
+	$(COMPOSE) run --rm frontend npm install
 
 # Run migrations inside backend container (requires full build)
 migrate:
