@@ -45,7 +45,7 @@ Many small businesses struggle to maintain a consistent and engaging presence on
 #### 1. Clone the repository
 ```bash
 
-git clone https://github.com/[your-org]/BrandqoAI.git
+git clone https://github.com/Techabode/BrandqoAI.git
 cd BrandqoAI
 ```
 #### 2. Install dependencies
