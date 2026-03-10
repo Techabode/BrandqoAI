@@ -9,7 +9,7 @@ These guidelines are here to make it easy to get started and to keep the project
 ## Code of Conduct
 
 All contributors are expected to maintain a professional and respectful working environment. Criticism should be directed at code and ideas, never at people. If you have a conflict with another contributor, raise it with the PM or Lead Developer directly.
-This project is governed by the [`CODE_OF_CONDUCT.md`](https://github.com/MADEPADIO/BrandqoAI/blob/main/CODE_OF_CONDUCT.md). By participating, you agree to uphold it.
+This project is governed by the [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). By participating, you agree to uphold it.
 
 ---
 
