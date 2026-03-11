@@ -25,6 +25,10 @@ install:
 	$(COMPOSE) run --rm backend npm install
 	$(COMPOSE) run --rm frontend npm install
 
+# Generate and apply initial migration on host (call this only once when starting a new project)
+migrate-init:
+	cd backend && npx prisma migrate dev --name init
+
 # Run migrations inside backend container (requires full build)
 migrate:
 	$(COMPOSE) run --rm backend npx prisma migrate deploy
