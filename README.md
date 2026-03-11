@@ -78,15 +78,50 @@ cp .env.example .env
 
 #### Environment Variables
 
-| Variable                                           | Description                  | Required |
-| -------------------------------------------------- | ---------------------------- | -------- |
-| `DATABASE_URL`                                     | PostgreSQL connection string | Yes      |
-| `REDIS_URL`                                        | Redis connection URL         | Yes      |
-| `JWT_SECRET`                                       | Secret for backend auth      | Yes      |
-| `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_BUSINESS_TOKEN` |                              | Yes      |
-| `META_APP_ID`, `META_APP_SECRET`                   |                              | Yes      |
-| `TWITTER_CLIENT_ID`, `TWITTER_CLIENT-SECRET`       | For X/Twitter integration    | Optional |
-| `OPENAI_API_KEY`                                   | Any AI provider keys         | Yes      |
+| Variable       | Description                  | Required |
+| -------------- | ---------------------------- | -------- |
+| `DATABASE_URL` | PostgreSQL connection string | Yes      |
+
+#### Database setup 🗄️
+
+Before you can use the API you must migrate the schema into your database. The project uses
+Prisma migrations, which are stored in `backend/prisma/migrations`.
+
+A helper make command bootstraps the initial migration for you, so you never need to call
+`npx prisma` manually. Run this once when you first clone the repo:
+
+```bash
+# on your host machine, after installing backend dependencies
+make migrate-init
+```
+
+This will generate and apply the first migration to whatever database `DATABASE_URL` points at
+(defaults to `localhost:5442` used by `make up-db`).
+
+After the migration files exist you can bring up the app in Docker. Because the migration
+directory must be copied into the image, rebuild the backend before deploying the migrations:
+
+```bash
+make build          # include migrations in image
+make migrate        # apply them inside the backend container
+```
+
+The `User` table (and all others) will then be present and the registration endpoint will work.
+
+`make migrate` is safe to run repeatedly; it will say "No pending migrations to apply" if the
+database is already up to date.
+
+```bash
+# optionally seed data
+make seed
+```
+
+| `REDIS_URL` | Redis connection URL | Yes |
+| `JWT_SECRET` | Secret for backend auth | Yes |
+| `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_BUSINESS_TOKEN` | | Yes |
+| `META_APP_ID`, `META_APP_SECRET` | | Yes |
+| `TWITTER_CLIENT_ID`, `TWITTER_CLIENT-SECRET` | For X/Twitter integration | Optional |
+| `OPENAI_API_KEY` | Any AI provider keys | Yes |
 
 In `frontend/`, create a `.env.local` file for any public/front-end configuration (API base URL, etc.).
 
