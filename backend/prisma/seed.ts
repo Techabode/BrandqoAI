@@ -1,6 +1,4 @@
-import { PrismaClient } from "../generated/prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../src/db/client";
 
 async function main() {
   const email = "demo@brandqoai.test";
