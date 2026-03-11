@@ -3,11 +3,13 @@
 An AI-powered WhatsApp assistant and dashboard that helps creators plan, generate and schedule on-brand content to Instagram, Facebook and X/Twitter.
 
 ---
+
 ## Overview
 
 Many small businesses struggle to maintain a consistent and engaging presence on social media. BrandqoAI solves this by acting as an always-on social media manager. Business owners simply register their details and connect their accounts, and the AI handles the rest, from generating an editable content calendar to automatically designing on-brand flyers and publishing posts based on a set schedule.
 
 ---
+
 ## Features
 
 - **WhatsApp creator bot**: Chat-first onboarding and content generation in WhatsApp.
@@ -17,6 +19,7 @@ Many small businesses struggle to maintain a consistent and engaging presence on
 - **Web dashboard**: Calendar view, brand preferences, and social account management.
 
 ---
+
 ## Tech Stack
 
 | Layer             | Technology                                                                         |
@@ -32,6 +35,7 @@ Many small businesses struggle to maintain a consistent and engaging presence on
 | Hosting           | _[e.g. AWS / DigitalOcean / Contabo]_                                              |
 
 ---
+
 ## Getting Started
 
 ### Prerequisites
@@ -42,13 +46,17 @@ Many small businesses struggle to maintain a consistent and engaging presence on
 - A Meta developer account (for WhatsApp Business Cloud API & Meta Graph APIs)
 
 ### Installation
+
 #### 1. Clone the repository
+
 ```bash
 
 git clone https://github.com/Techabode/BrandqoAI.git
 cd BrandqoAI
 ```
+
 #### 2. Install dependencies
+
 ```bash
 # Backend
 cd ../backend
@@ -58,8 +66,11 @@ npm install
 cd frontend
 npm install
 ```
+
 #### 3. Set up environment variables
+
 In `backend/`, create a `.env` file:
+
 ```bash
 cp .env.example .env
 # Open .env and fill in the required values
@@ -76,19 +87,24 @@ cp .env.example .env
 | `META_APP_ID`, `META_APP_SECRET`                   |                              | Yes      |
 | `TWITTER_CLIENT_ID`, `TWITTER_CLIENT-SECRET`       | For X/Twitter integration    | Optional |
 | `OPENAI_API_KEY`                                   | Any AI provider keys         | Yes      |
+
 In `frontend/`, create a `.env.local` file for any public/front-end configuration (API base URL, etc.).
 
 #### 4. Run the apps
+
 From `backend/` and `frontend/` respectively:
+
 ```bash
 npm run dev
 ```
 
 Then open the dashboard at `http://localhost:3000`.
 
----
-## Project Structure
+> **API docs**: While the backend is running you can view the automatically generated Swagger documentation at `http://localhost:4000/docs`.
 
+---
+
+## Project Structure
 
 ```
 BrandqoAI/
@@ -101,16 +117,17 @@ BrandqoAI/
 ├── .github/              # GitHub Actions workflows and issue templates
 │   ├── workflows/
 │   └── ISSUE_TEMPLATE/
-├── CONTRIBUTING.md        
+├── CONTRIBUTING.md
 ├── docker-compose.yml    # Docker setup (if applicable)
 └── README.md
 ```
 
 ---
+
 ## Contributing
 
-
 We welcome contributions from the team. Please read:
+
 - [CONTRIBUTING.md] how to set up your environment, coding standards, and the contribution process before opening any issues or pull requests.
 - [`CODE_OF_CONDUCT.md`] – expected behavior in the community.
 
@@ -123,6 +140,7 @@ We welcome contributions from the team. Please read:
 - You can start with issues labelled `good first issue` or `help wanted`/
 
 ---
+
 ## Project Roadmap
 
 High-level roadmap lives in [`ROADMAP.md`](ROADMAP.md). It follows these phases:
@@ -137,6 +155,7 @@ High-level roadmap lives in [`ROADMAP.md`](ROADMAP.md). It follows these phases:
 See [CHANGELOG.md] for the full version history.
 
 ---
+
 ## Team
 
 | Role                    | Name  | GitHub         |
@@ -145,6 +164,7 @@ See [CHANGELOG.md] for the full version history.
 | Lead Developer          | Henry | @ezeanyimhenry |
 
 ---
+
 ## License
 
 BrandqoAI is open source under the [MIT License].

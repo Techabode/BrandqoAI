@@ -1,4 +1,6 @@
 import swaggerJsdoc, { type Options } from "swagger-jsdoc";
+import path from "path";
+import { env } from "../config/env";
 
 const options: Options = {
   definition: {
@@ -10,7 +12,7 @@ const options: Options = {
     },
     servers: [
       {
-        url: "http://localhost:4000",
+        url: `http://localhost:${env.port}`,
       },
     ],
     components: {
@@ -23,7 +25,11 @@ const options: Options = {
       },
     },
   },
-  apis: [],
+  // glob patterns for files containing JSDoc comments
+  apis: [
+    path.join(process.cwd(), "src/modules/**/*.ts"),
+    path.join(process.cwd(), "src/http/**/*.ts"),
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

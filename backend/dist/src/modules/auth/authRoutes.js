@@ -1,15 +1,16 @@
-import { Router } from "express";
-import { registerHandler, loginHandler, meHandler } from "./authController";
-import { requireAuth } from "./authMiddleware";
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.authRouter = void 0;
+const express_1 = require("express");
+const authController_1 = require("./authController");
+const authMiddleware_1 = require("./authMiddleware");
 /**
  * @swagger
  * tags:
  *   name: Auth
  *   description: Authentication operations (register, login, profile)
  */
-export const authRouter = Router();
-
+exports.authRouter = (0, express_1.Router)();
 /**
  * @swagger
  * /api/auth/register:
@@ -43,8 +44,7 @@ export const authRouter = Router();
  *       409:
  *         description: Email already registered
  */
-authRouter.post("/register", registerHandler);
-
+exports.authRouter.post("/register", authController_1.registerHandler);
 /**
  * @swagger
  * /api/auth/login:
@@ -75,8 +75,7 @@ authRouter.post("/register", registerHandler);
  *       401:
  *         description: Invalid credentials
  */
-authRouter.post("/login", loginHandler);
-
+exports.authRouter.post("/login", authController_1.loginHandler);
 /**
  * @swagger
  * /api/auth/me:
@@ -91,5 +90,4 @@ authRouter.post("/login", loginHandler);
  *       401:
  *         description: Unauthenticated
  */
-authRouter.get("/me", requireAuth, meHandler);
-
+exports.authRouter.get("/me", authMiddleware_1.requireAuth, authController_1.meHandler);
