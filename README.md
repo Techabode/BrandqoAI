@@ -111,10 +111,14 @@ The `User` table (and all others) will then be present and the registration endp
 `make migrate` is safe to run repeatedly; it will say "No pending migrations to apply" if the
 database is already up to date.
 
+When you want some demo data in the database you can invoke the seeding target:
+
 ```bash
-# optionally seed data
-make seed
+make seed   # runs `prisma db seed` inside the backend container
 ```
+
+(Seeding is configured in `prisma.config.ts` and the command uses the TypeScript
+script under `prisma/seed.ts`.)
 
 | `REDIS_URL` | Redis connection URL | Yes |
 | `JWT_SECRET` | Secret for backend auth | Yes |
