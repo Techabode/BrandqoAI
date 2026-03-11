@@ -58,6 +58,7 @@ export const generateTestContentForBrand = async (
           caption: idea.caption,
           imagePrompt: idea.imagePrompt,
           status: "DRAFT",
+          brand: { connect: { id: brand.id } },
         })),
       },
     },

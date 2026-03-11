@@ -1,4 +1,4 @@
-import { prisma } from "../../db/client";
+import { prisma, Prisma } from "../../db/client";
 import { generateTestContentForBrand } from "../content/contentService";
 
 type ConversationStep = "WELCOME" | "ASK_BRAND_NAME" | "ASK_INDUSTRY" | "READY";
@@ -31,7 +31,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
   if (text.trim().toLowerCase() === "reset") {
     await prisma.conversationState.update({
       where: { id: state.id },
-      data: { currentStep: "WELCOME", contextJson: null },
+      data: { currentStep: "WELCOME", contextJson: Prisma.JsonNull },
     });
     return "Okay, I’ve reset our conversation. Tell me a bit about your brand to get started.";
   }
@@ -81,7 +81,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
       if (!context.brandId) {
         await prisma.conversationState.update({
           where: { id: state.id },
-          data: { currentStep: "WELCOME", contextJson: null },
+          data: { currentStep: "WELCOME", contextJson: Prisma.JsonNull },
         });
         return "Let’s start again. What’s your brand name?";
       }
@@ -116,7 +116,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
       if (!context.brandId) {
         await prisma.conversationState.update({
           where: { id: state.id },
-          data: { currentStep: "WELCOME", contextJson: null },
+          data: { currentStep: "WELCOME", contextJson: Prisma.JsonNull },
         });
         return "Looks like I lost your brand details. Let’s start again. What’s your brand name?";
       }
@@ -143,7 +143,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
     default: {
       await prisma.conversationState.update({
         where: { id: state.id },
-        data: { currentStep: "WELCOME", contextJson: null },
+        data: { currentStep: "WELCOME", contextJson: Prisma.JsonNull },
       });
       return "Let’s start fresh. What’s your brand or business name?";
     }

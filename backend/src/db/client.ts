@@ -3,6 +3,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { env } from "../config/env";
 
+export { Prisma } from "../../generated/prisma/client";
+
 const pool = new Pool({
   connectionString: env.databaseUrl,
 });
