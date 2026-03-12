@@ -25,6 +25,12 @@ install:
 	$(COMPOSE) run --rm backend npm install
 	$(COMPOSE) run --rm frontend npm install
 
+# generate swagger documentation file using swagger-autogen
+# runs in the host environment so you don't need to rebuild the image
+# (but if you do run it inside the container you must rebuild after changing package.json)
+docs:
+	cd backend && npm install && npm run docs:generate
+
 # Generate and apply initial migration on host (call this only once when starting a new project)
 migrate-init:
 	cd backend && npx prisma migrate dev --name init

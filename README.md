@@ -78,11 +78,17 @@ cp .env.example .env
 
 #### Environment Variables
 
-| Variable       | Description                  | Required |
-| -------------- | ---------------------------- | -------- |
-| `DATABASE_URL` | PostgreSQL connection string | Yes      |
-
-#### Database setup 🗄️
+| Variable                                           | Description                                                        | Required                     |
+| -------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------- |
+| `DATABASE_URL`                                     | PostgreSQL connection string                                       | Yes                          |
+| `JWT_SECRET`                                       | Secret for backend auth                                            | Yes                          |
+| `AI_PROVIDER`                                      | AI provider: `mistral` (default, cheapest) or `claude` (premium)   | No (defaults to mistral)     |
+| `TOGETHER_API_KEY`                                 | Together AI API key for Mistral 7B (~$0.003 per 1K tokens)         | Yes if `AI_PROVIDER=mistral` |
+| `ANTHROPIC_API_KEY`                                | Anthropic API key for Claude Sonnet (~$0.003 per 1K tokens input)  | Yes if `AI_PROVIDER=claude`  |
+| `REPLICATE_API_KEY`                                | Replicate API key for Stable Diffusion image generation (optional) | No                           |
+| `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_BUSINESS_TOKEN` | WhatsApp Business Cloud API credentials                            | Yes                          |
+| `META_APP_ID`, `META_APP_SECRET`                   | Meta Graph API credentials                                         | Yes                          |
+| `TWITTER_CLIENT_ID`, `TWITTER_CLIENT_SECRET`       | For X/Twitter integration                                          | Optional                     |
 
 Before you can use the API you must migrate the schema into your database. The project uses
 Prisma migrations, which are stored in `backend/prisma/migrations`.
@@ -120,12 +126,28 @@ make seed   # runs `prisma db seed` inside the backend container
 (Seeding is configured in `prisma.config.ts` and the command uses the TypeScript
 script under `prisma/seed.ts`.)
 
-| `REDIS_URL` | Redis connection URL | Yes |
-| `JWT_SECRET` | Secret for backend auth | Yes |
-| `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_BUSINESS_TOKEN` | | Yes |
-| `META_APP_ID`, `META_APP_SECRET` | | Yes |
-| `TWITTER_CLIENT_ID`, `TWITTER_CLIENT-SECRET` | For X/Twitter integration | Optional |
-| `OPENAI_API_KEY` | Any AI provider keys | Yes |
+#### AI Provider Configuration 🤖
+
+BrandqoAI supports multiple LLM providers for cost and quality optimization. By default, it uses **Mistral 7B via Together AI** (cheapest), but you can switch to **Claude Sonnet** by setting an environment variable.
+
+**Cost Comparison:**
+
+- **Mistral 7B (default)**: ~$0.003 per 1K input tokens (via Together AI)
+- **Claude Sonnet (premium)**: ~$0.003 per 1K input tokens, ~$0.015 per 1K output tokens (via Anthropic)
+
+**Setup:**
+
+```bash
+# Use Mistral 7B (default, cheapest)
+AI_PROVIDER=mistral
+TOGETHER_API_KEY=sk-together-...
+
+# OR use Claude Sonnet (switch if needed)
+AI_PROVIDER=claude
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+The provider is selected at runtime based on the `AI_PROVIDER` environment variable. The corresponding API key must be provided in your `.env` file.
 
 In `frontend/`, create a `.env.local` file for any public/front-end configuration (API base URL, etc.).
 
@@ -139,7 +161,23 @@ npm run dev
 
 Then open the dashboard at `http://localhost:3000`.
 
-> **API docs**: While the backend is running you can view the automatically generated Swagger documentation at `http://localhost:4000/docs`.
+> **API docs**: While the backend is running you can view the Swagger UI at `http://localhost:4000/docs/`.
+>
+> To regenerate the raw OpenAPI specification (used by the UI), run:
+>
+> ```bash
+> make docs      # invokes `npm run docs:generate` inside the backend
+> ```
+>
+> This uses [swagger-autogen](https://www.npmjs.com/package/swagger-autogen) to
+> scan your route files and output `backend/src/docs/swagger-output.json`.
+>
+> _Tip_: run `make docs` after adding or changing any endpoints so the
+> specification stays in sync.
+>
+> You do **not** need to write any JSDoc comments – the autogen tool infers paths,
+> parameters and responses automatically. Manual comments are still fine for
+> adding descriptions or examples.
 
 ---
 

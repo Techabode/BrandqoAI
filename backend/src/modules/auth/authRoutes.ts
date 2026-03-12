@@ -2,12 +2,6 @@ import { Router } from "express";
 import { registerHandler, loginHandler, meHandler } from "./authController";
 import { requireAuth } from "./authMiddleware";
 
-/**
- * @swagger
- * tags:
- *   name: Auth
- *   description: Authentication operations (register, login, profile)
- */
 export const authRouter = Router();
 
 /**
@@ -23,25 +17,34 @@ export const authRouter = Router();
  *           schema:
  *             type: object
  *             required:
- *               - name
  *               - email
  *               - password
+ *               - name
  *             properties:
- *               name:
- *                 type: string
  *               email:
  *                 type: string
  *                 format: email
  *               password:
  *                 type: string
- *                 format: password
+ *                 minLength: 8
+ *               name:
+ *                 type: string
  *     responses:
- *       201:
- *         description: Created successfully with JWT token
+ *       200:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 token:
+ *                   type: string
+ *       409:
+ *         description: Email already exists
  *       400:
  *         description: Invalid input
- *       409:
- *         description: Email already registered
  */
 authRouter.post("/register", registerHandler);
 
@@ -49,7 +52,7 @@ authRouter.post("/register", registerHandler);
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Log in a user
+ *     summary: Login user
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -66,14 +69,22 @@ authRouter.post("/register", registerHandler);
  *                 format: email
  *               password:
  *                 type: string
- *                 format: password
  *     responses:
  *       200:
- *         description: Authenticated successfully with JWT token
- *       400:
- *         description: Invalid input
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 token:
+ *                   type: string
  *       401:
  *         description: Invalid credentials
+ *       400:
+ *         description: Invalid input
  */
 authRouter.post("/login", loginHandler);
 
@@ -81,15 +92,19 @@ authRouter.post("/login", loginHandler);
  * @swagger
  * /api/auth/me:
  *   get:
- *     summary: Get current authenticated user's profile
+ *     summary: Get current user profile
  *     tags: [Auth]
  *     security:
- *       - bearerAuth: []
+ *       - Bearer: []
  *     responses:
  *       200:
- *         description: User profile returned
+ *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  *       401:
- *         description: Unauthenticated
+ *         description: Unauthorized
  */
 authRouter.get("/me", requireAuth, meHandler);
 

@@ -1,7 +1,7 @@
 import { prisma, Prisma } from "../../db/client";
 import { generateTestContentForBrand } from "../content/contentService";
 
-type ConversationStep = "WELCOME" | "ASK_BRAND_NAME" | "ASK_INDUSTRY" | "READY";
+type ConversationStep = "WELCOME" | "ASK_BRAND_NAME" | "ASK_INDUSTRY" | "ASK_AUDIENCE" | "ASK_TONE" | "READY";
 
 interface HandleIncomingMessageParams {
   fromPhone: string;
@@ -98,16 +98,75 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
       await prisma.conversationState.update({
         where: { id: state.id },
         data: {
+          currentStep: "ASK_AUDIENCE",
+        },
+      });
+
+      return `Great! ${industry} is a solid niche.\n\nWho's your target audience? (e.g. fitness enthusiasts, busy professionals, small business owners)`;
+    }
+
+    case "ASK_AUDIENCE": {
+      const context = (state.contextJson as { brandId?: string } | null) ?? {};
+      if (!context.brandId) {
+        await prisma.conversationState.update({
+          where: { id: state.id },
+          data: { currentStep: "WELCOME", contextJson: Prisma.JsonNull },
+        });
+        return "Let's start again. What's your brand name?";
+      }
+
+      const targetAudience = text.trim();
+
+      await prisma.brandProfile.update({
+        where: { id: context.brandId },
+        data: {
+          targetAudience,
+        },
+      });
+
+      await prisma.conversationState.update({
+        where: { id: state.id },
+        data: {
+          currentStep: "ASK_TONE",
+        },
+      });
+
+      return `Perfect!\n\nNow, what's your brand's tone of voice? (e.g. friendly and casual, professional and authoritative, witty and irreverent)`;
+    }
+
+    case "ASK_TONE": {
+      const context = (state.contextJson as { brandId?: string } | null) ?? {};
+      if (!context.brandId) {
+        await prisma.conversationState.update({
+          where: { id: state.id },
+          data: { currentStep: "WELCOME", contextJson: Prisma.JsonNull },
+        });
+        return "Let's start again. What's your brand name?";
+      }
+
+      const toneOfVoice = text.trim();
+
+      await prisma.brandProfile.update({
+        where: { id: context.brandId },
+        data: {
+          toneOfVoice,
+        },
+      });
+
+      await prisma.conversationState.update({
+        where: { id: state.id },
+        data: {
           currentStep: "READY",
         },
       });
 
       return [
-        "Got it, thanks.",
+        "Awesome! Your brand is all set up. 🎉",
         "",
-        "You can now ask me for ideas, captions, and poster prompts. For example:",
-        "- “I want 5 posts for next week about my new product launch”",
-        "- “Give me 3 hooks for an Instagram post about my webinar”",
+        "You can now ask me for content ideas, captions, and poster prompts. For example:",
+        "- \"I want 5 posts for next week about my new product launch\"",
+        "- \"Give me 3 hooks for an Instagram post about my webinar\"",
+        "- \"Create a carousel post idea about [topic]\"",
       ].join("\n");
     }
 
