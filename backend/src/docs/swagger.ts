@@ -1,4 +1,5 @@
 import swaggerJsdoc, { type Options } from "swagger-jsdoc";
+import fs from "fs";
 import path from "path";
 import { env } from "../config/env";
 
@@ -32,5 +33,9 @@ const options: Options = {
   ],
 };
 
-export const swaggerSpec = swaggerJsdoc(options);
+const generatedPath = path.join(__dirname, "swagger-output.json");
+
+export const swaggerSpec = fs.existsSync(generatedPath)
+  ? JSON.parse(fs.readFileSync(generatedPath, "utf-8"))
+  : swaggerJsdoc(options);
 
