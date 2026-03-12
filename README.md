@@ -139,7 +139,23 @@ npm run dev
 
 Then open the dashboard at `http://localhost:3000`.
 
-> **API docs**: While the backend is running you can view the automatically generated Swagger documentation at `http://localhost:4000/docs`.
+> **API docs**: While the backend is running you can view the Swagger UI at `http://localhost:4000/docs/`.
+>
+> To regenerate the raw OpenAPI specification (used by the UI), run:
+>
+> ```bash
+> make docs      # invokes `npm run docs:generate` inside the backend
+> ```
+>
+> This uses [swagger-autogen](https://www.npmjs.com/package/swagger-autogen) to
+> scan your route files and output `backend/src/docs/swagger-output.json`.
+>
+> _Tip_: run `make docs` after adding or changing any endpoints so the
+> specification stays in sync.
+>
+> You do **not** need to write any JSDoc comments – the autogen tool infers paths,
+> parameters and responses automatically. Manual comments are still fine for
+> adding descriptions or examples.
 
 ---
 
