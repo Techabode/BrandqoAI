@@ -8,13 +8,13 @@ import type { AuthenticatedRequest } from "./authMiddleware";
 
 const registerSchema = z.object({
   name: z.string().min(1),
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(8),
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.email(),
+  password: z.string().min(8, { message: 'Password must be at least 8 characters' })
 });
 
 const hashPassword = async (password: string) => {
@@ -33,7 +33,8 @@ const createToken = (userId: string) => {
 export const registerHandler = async (req: Request, res: Response) => {
   const parseResult = registerSchema.safeParse(req.body);
   if (!parseResult.success) {
-    return res.status(400).json({ message: "Invalid input", errors: parseResult.error.flatten() });
+    const errors = z.flattenError(parseResult.error);
+    return res.status(400).json({ message: "Invalid input", errors: errors });
   }
 
   const { name, email, password } = parseResult.data;
@@ -68,7 +69,8 @@ export const registerHandler = async (req: Request, res: Response) => {
 export const loginHandler = async (req: Request, res: Response) => {
   const parseResult = loginSchema.safeParse(req.body);
   if (!parseResult.success) {
-    return res.status(400).json({ message: "Invalid input", errors: parseResult.error.flatten() });
+    const errors = z.flattenError(parseResult.error);
+    return res.status(400).json({ message: "Invalid input", errors: errors });
   }
 
   const { email, password } = parseResult.data;
