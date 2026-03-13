@@ -24,6 +24,26 @@ const options: Options = {
           bearerFormat: "JWT",
         },
       },
+      schemas: {
+        User: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            email: { type: "string" },
+            name: { type: "string" },
+          },
+        },
+        BrandProfile: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            brandName: { type: "string" },
+            industry: { type: "string" },
+            targetAudience: { type: "string" },
+            toneOfVoice: { type: "string" },
+          },
+        },
+      },
     },
   },
   // glob patterns for files containing JSDoc comments
