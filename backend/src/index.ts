@@ -3,11 +3,18 @@ import cors from "cors";
 import { env } from "./config/env";
 import { prisma } from "./db/client";
 import { authRouter } from "./modules/auth/authRoutes";
+import { conversationRouter } from "./modules/conversation/conversationRoutes";
+import { contentRouter } from "./modules/content/contentRoutes";
+import { brandRouter } from "./modules/brand/brandRoutes";
 import { handleWhatsAppWebhook, verifyWhatsAppWebhook } from "./http/whatsappWebhook";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./docs/swagger";
+import cookieParser from "cookie-parser";
+
 
 const app = express();
+
+app.use(cookieParser());
 
 app.use(
   cors({
@@ -17,18 +24,6 @@ app.use(
 );
 app.use(express.json());
 
-/**
- * @swagger
- * /health:
- *   get:
- *     summary: Check server and database health
- *     tags: [Health]
- *     responses:
- *       200:
- *         description: Service is up
- *       500:
- *         description: Database or server error
- */
 app.get("/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -39,51 +34,12 @@ app.get("/health", async (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/conversation", conversationRouter);
+app.use("/api/content", contentRouter);
+app.use("/api/brand", brandRouter);
 
 // swagger documentation route (automatically generated from JSDoc comments)
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-/**
- * @swagger
- * /api/whatsapp/webhook:
- *   get:
- *     summary: Verify WhatsApp webhook
- *     tags: [WhatsApp]
- *     parameters:
- *       - in: query
- *         name: hub.mode
- *         schema:
- *           type: string
- *         required: true
- *       - in: query
- *         name: hub.challenge
- *         schema:
- *           type: string
- *         required: true
- *       - in: query
- *         name: hub.verify_token
- *         schema:
- *           type: string
- *         required: true
- *     responses:
- *       200:
- *         description: Challenge response
- *       403:
- *         description: Verification failed
- *   post:
- *     summary: Handle incoming WhatsApp webhook messages
- *     tags: [WhatsApp]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             description: Payload from WhatsApp
- *     responses:
- *       200:
- *         description: Message processed
- */
 app.get("/api/whatsapp/webhook", verifyWhatsAppWebhook);
 app.post("/api/whatsapp/webhook", handleWhatsAppWebhook);
 

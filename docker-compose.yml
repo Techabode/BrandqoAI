@@ -21,6 +21,9 @@ services:
       JWT_SECRET: change-me-in-development
       PORT: 4000
       CORS_ORIGIN: http://localhost:3000
+      NODE_ENV: development
+    env_file:
+      - .env.docker
     ports:
       - "4000:4000"
 
@@ -36,4 +39,3 @@ services:
 
 volumes:
   db_data:
-

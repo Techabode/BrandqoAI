@@ -2,3 +2,6 @@ node_modules
 .env
 
 /generated/prisma
+
+# auto-generated swagger spec
+src/docs/swagger-output.json

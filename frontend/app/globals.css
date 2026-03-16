@@ -1,0 +1,356 @@
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-heading: "Space Grotesk", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+
+  /* Base Colors */
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  /* Component Colors */
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  /* Sidebar Colors */
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  --color-sidebar-muted-foreground: hsl(var(--sidebar-muted-foreground));
+
+  /* Brand & Social */
+  --color-brand-navy: hsl(var(--brand-navy));
+  --color-brand-green: hsl(var(--brand-green));
+  --color-brand-green-light: hsl(var(--brand-green-light));
+  --color-brand-orange: hsl(var(--brand-orange));
+  --color-brand-orange-light: hsl(var(--brand-orange-light));
+  --color-brand-blue: hsl(var(--brand-blue));
+  --color-brand-blue-light: hsl(var(--brand-blue-light));
+  --color-brand-purple: hsl(var(--brand-purple));
+  --color-brand-purple-light: hsl(var(--brand-purple-light));
+  --color-whatsapp: hsl(var(--whatsapp));
+  --color-instagram: hsl(var(--instagram));
+  --color-facebook: hsl(var(--facebook));
+  --color-twitter: hsl(var(--twitter));
+
+  /* Borders */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Container Customization */
+  --container-2xl: 1400px;
+
+  /* Keyframes */
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Animations */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-fade-in: fade-in 0.4s ease-out;
+  --animate-slide-in: slide-in 0.3s ease-out;
+}
+
+/* Base Variables */
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 220 25% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 10%;
+    --primary: 152 69% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 95%;
+    --secondary-foreground: 220 25% 10%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 152 69% 40%;
+    --radius: 0.75rem;
+
+    --brand-navy: 220 30% 15%;
+    --brand-green: 152 69% 40%;
+    --brand-green-light: 152 60% 95%;
+    --brand-orange: 25 95% 53%;
+    --brand-orange-light: 25 90% 95%;
+    --brand-blue: 210 90% 55%;
+    --brand-blue-light: 210 80% 95%;
+    --brand-purple: 270 60% 55%;
+    --brand-purple-light: 270 50% 95%;
+
+    --whatsapp: 142 70% 45%;
+    --instagram: 330 80% 55%;
+    --facebook: 220 70% 50%;
+    --twitter: 200 10% 12%;
+
+    --sidebar-background: 220 30% 15%;
+    --sidebar-foreground: 220 15% 80%;
+    --sidebar-primary: 152 69% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 25% 22%;
+    --sidebar-accent-foreground: 220 15% 90%;
+    --sidebar-border: 220 25% 22%;
+    --sidebar-ring: 152 69% 40%;
+    --sidebar-muted-foreground: 220 15% 55%;
+
+    /* Optional shadows as custom properties if you use them often */
+    --shadow-sm: 0 1px 2px 0 hsl(220 25% 10% / 0.05);
+    --shadow-md:
+      0 4px 6px -1px hsl(220 25% 10% / 0.07),
+      0 2px 4px -2px hsl(220 25% 10% / 0.05);
+    --shadow-lg:
+      0 10px 15px -3px hsl(220 25% 10% / 0.08),
+      0 4px 6px -4px hsl(220 25% 10% / 0.04);
+    --shadow-card:
+      0 1px 3px hsl(220 25% 10% / 0.06), 0 1px 2px hsl(220 25% 10% / 0.04);
+  }
+
+  .dark {
+    --background: 220 25% 8%;
+    --foreground: 210 20% 95%;
+    --card: 220 25% 12%;
+    --card-foreground: 210 20% 95%;
+    --popover: 220 25% 12%;
+    --popover-foreground: 210 20% 95%;
+    --primary: 152 69% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 210 20% 95%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 25 90% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 152 69% 45%;
+    --sidebar-background: 220 30% 8%;
+    --sidebar-foreground: 220 15% 75%;
+    --sidebar-primary: 152 69% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 25% 15%;
+    --sidebar-accent-foreground: 220 15% 90%;
+    --sidebar-border: 220 25% 15%;
+    --sidebar-ring: 152 69% 45%;
+  }
+
+  /* Keyframes & animations – now use @keyframes directly + animation-* theme vars if needed */
+  @layer base {
+    @keyframes accordion-down {
+      from {
+        height: 0;
+      }
+      to {
+        height: var(--radix-accordion-content-height);
+      }
+    }
+
+    @keyframes accordion-up {
+      from {
+        height: var(--radix-accordion-content-height);
+      }
+      to {
+        height: 0;
+      }
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+  }
+}
+
+/* Global Styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50
+           bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50
+           bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border shadow-sm;
+  }
+
+  .btn-destructive {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50
+           bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50
+           border border-input bg-transparent hover:bg-accent hover:text-accent-foreground shadow-sm;
+  }
+
+  .card {
+    @apply bg-card rounded-[var(--radius)] shadow-lg p-6 border border-border;
+  }
+
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-border shadow-[var(--shadow-card)];
+  }
+
+  .stat-card-green {
+    @apply bg-brand-green-light border border-primary/10 text-foreground;
+  }
+
+  .stat-card-orange {
+    @apply bg-brand-orange-light border border-accent/10 text-foreground;
+  }
+
+  .stat-card-blue {
+    @apply bg-brand-blue-light border border-brand-blue/10 text-foreground;
+  }
+
+  .stat-card-purple {
+    @apply bg-brand-purple-light border border-brand-purple/10 text-foreground;
+  }
+
+  .platform-whatsapp {
+    @apply bg-whatsapp/10 text-whatsapp border border-whatsapp/20;
+  }
+
+  .platform-instagram {
+    @apply bg-instagram/10 text-instagram border border-instagram/20;
+  }
+
+  .platform-facebook {
+    @apply bg-facebook/10 text-facebook border border-facebook/20;
+  }
+
+  .platform-twitter {
+    @apply bg-twitter/10 text-twitter border border-twitter/20;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors;
+  }
+
+  .sidebar-link-active {
+    @apply bg-sidebar-accent text-sidebar-primary font-medium;
+  }
+
+  .form-field {
+    @apply space-y-2;
+  }
+
+  .input {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm
+           ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium
+           placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+}

@@ -54,10 +54,10 @@ export const registerHandler = async (req: Request, res: Response) => {
     },
   });
 
-  const token = createToken(user.id);
+  // const token = createToken(user.id);
 
   return res.status(201).json({
-    token,
+    message: "Registration successful",
     user: {
       id: user.id,
       name: user.name,
@@ -86,9 +86,24 @@ export const loginHandler = async (req: Request, res: Response) => {
   }
 
   const token = createToken(user.id);
+  
+  if (!token) {
+    return res.status(401).json({ message: "Something went wrong" });
+  }
+
+  const isProduction = env.nodeEnv === "production";
+
+  // Set the cookie directly in the browser
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
+  });
 
   return res.json({
-    token,
+    message: "Login successful",
     user: {
       id: user.id,
       name: user.name,
@@ -96,6 +111,22 @@ export const loginHandler = async (req: Request, res: Response) => {
     },
   });
 };
+
+
+export const logoutHandler = (req: Request, res: Response) => {
+  const isProduction = env.nodeEnv === "production";
+
+  res.cookie("token", "", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    expires: new Date(0), // Expire immediately
+    path: "/",
+  });
+
+  return res.json({ message: "Logged out successfully" });
+};
+
 
 export const meHandler = async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {

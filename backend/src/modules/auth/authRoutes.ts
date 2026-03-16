@@ -1,13 +1,7 @@
 import { Router } from "express";
-import { registerHandler, loginHandler, meHandler } from "./authController";
+import { registerHandler, loginHandler, meHandler, logoutHandler } from "./authController";
 import { requireAuth } from "./authMiddleware";
 
-/**
- * @swagger
- * tags:
- *   name: Auth
- *   description: Authentication operations (register, login, profile)
- */
 export const authRouter = Router();
 
 /**
@@ -23,25 +17,35 @@ export const authRouter = Router();
  *           schema:
  *             type: object
  *             required:
- *               - name
  *               - email
  *               - password
+ *               - name
  *             properties:
- *               name:
- *                 type: string
  *               email:
  *                 type: string
  *                 format: email
  *               password:
  *                 type: string
- *                 format: password
+ *                 minLength: 8
+ *               name:
+ *                 type: string
  *     responses:
- *       201:
- *         description: Created successfully with JWT token
+ *       200:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 'Registration successful'
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       409:
+ *         description: Email already exists
  *       400:
  *         description: Invalid input
- *       409:
- *         description: Email already registered
  */
 authRouter.post("/register", registerHandler);
 
@@ -49,7 +53,7 @@ authRouter.post("/register", registerHandler);
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Log in a user
+ *     summary: Login user
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -66,30 +70,71 @@ authRouter.post("/register", registerHandler);
  *                 format: email
  *               password:
  *                 type: string
- *                 format: password
  *     responses:
  *       200:
- *         description: Authenticated successfully with JWT token
- *       400:
- *         description: Invalid input
+ *         description: Login successful. Sets an httpOnly 'token' cookie.
+ *         headers:
+ *           Set-Cookie:
+ *             description: Contains the JWT auth token
+ *             schema:
+ *               type: string
+ *               example: token=abc123xyz; Path=/; HttpOnly; Max-Age=604800
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 message:
+ *                   type: string
+ *                   example: "Login successful" 
  *       401:
  *         description: Invalid credentials
+ *       400:
+ *         description: Invalid input
  */
 authRouter.post("/login", loginHandler);
 
 /**
  * @swagger
- * /api/auth/me:
- *   get:
- *     summary: Get current authenticated user's profile
+ * /api/auth/logout:
+ *   post:
+ *     summary: Log out the current user
+ *     description: Clears the authentication cookie to end the session.
  *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: User profile returned
+ *         description: Logged out successfully
+ *         headers:
+ *           Set-Cookie:
+ *             description: Clears the token cookie by setting it to an empty string and an expired date.
+ *             schema:
+ *               type: string
+ *               example: token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly
  *       401:
- *         description: Unauthenticated
+ *         description: Unauthorized (if session was already invalid)
+ */
+authRouter.post("/logout", logoutHandler);
+
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Auth]
+ *     security:
+ *       - Bearer: []
+ *     responses:
+ *       200:
+ *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
  */
 authRouter.get("/me", requireAuth, meHandler);
 
