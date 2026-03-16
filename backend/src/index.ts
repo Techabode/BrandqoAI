@@ -9,8 +9,12 @@ import { brandRouter } from "./modules/brand/brandRoutes";
 import { handleWhatsAppWebhook, verifyWhatsAppWebhook } from "./http/whatsappWebhook";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./docs/swagger";
+import cookieParser from "cookie-parser";
+
 
 const app = express();
+
+app.use(cookieParser());
 
 app.use(
   cors({
