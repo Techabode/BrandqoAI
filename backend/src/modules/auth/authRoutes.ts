@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerHandler, loginHandler, meHandler } from "./authController";
+import { registerHandler, loginHandler, meHandler, logoutHandler } from "./authController";
 import { requireAuth } from "./authMiddleware";
 
 export const authRouter = Router();
@@ -37,10 +37,11 @@ export const authRouter = Router();
  *             schema:
  *               type: object
  *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 'Registration successful'
  *                 user:
  *                   $ref: '#/components/schemas/User'
- *                 token:
- *                   type: string
  *       409:
  *         description: Email already exists
  *       400:
@@ -71,7 +72,13 @@ authRouter.post("/register", registerHandler);
  *                 type: string
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful. Sets an httpOnly 'token' cookie.
+ *         headers:
+ *           Set-Cookie:
+ *             description: Contains the JWT auth token
+ *             schema:
+ *               type: string
+ *               example: token=abc123xyz; Path=/; HttpOnly; Max-Age=604800
  *         content:
  *           application/json:
  *             schema:
@@ -79,14 +86,37 @@ authRouter.post("/register", registerHandler);
  *               properties:
  *                 user:
  *                   $ref: '#/components/schemas/User'
- *                 token:
+ *                 message:
  *                   type: string
+ *                   example: "Login successful" 
  *       401:
  *         description: Invalid credentials
  *       400:
  *         description: Invalid input
  */
 authRouter.post("/login", loginHandler);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Log out the current user
+ *     description: Clears the authentication cookie to end the session.
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ *         headers:
+ *           Set-Cookie:
+ *             description: Clears the token cookie by setting it to an empty string and an expired date.
+ *             schema:
+ *               type: string
+ *               example: token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly
+ *       401:
+ *         description: Unauthorized (if session was already invalid)
+ */
+authRouter.post("/logout", logoutHandler);
+
 
 /**
  * @swagger
