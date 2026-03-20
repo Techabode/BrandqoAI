@@ -1,8 +1,18 @@
 import { Router } from "express";
+import { z } from "zod";
 import { requireAuth, AuthenticatedRequest } from "../auth/authMiddleware";
 import { prisma } from "../../db/client";
 
 const router = Router();
+
+const brandInputSchema = z.object({
+  brandName: z.string().trim().min(2).max(80),
+  industry: z.string().trim().min(2).max(100).optional(),
+  targetAudience: z.string().trim().min(6).max(180).optional(),
+  toneOfVoice: z.string().trim().min(4).max(140).optional(),
+  contentPillars: z.string().trim().min(3).max(240).optional(),
+  logoUrl: z.string().trim().url().optional(),
+});
 
 /**
  * @swagger
@@ -28,22 +38,21 @@ const router = Router();
  *         description: Unauthorized
  */
 router.get("/", requireAuth, async (req: AuthenticatedRequest, res) => {
-    try {
-        const brands = await prisma.brandProfile.findMany({
-            where: { userId: req.user!.id },
-            include: {
-                preferences: true,
-            },
-        });
+  try {
+    const brands = await prisma.brandProfile.findMany({
+      where: { userId: req.user!.id },
+      include: {
+        preferences: true,
+      },
+    });
 
-        res.json({ brands });
-    } catch (error) {
-        console.error("Brand fetch error:", error);
-        res.status(500).json({ error: "Failed to fetch brands" });
-    }
+    res.json({ brands });
+  } catch (error) {
+    console.error("Brand fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch brands" });
+  }
 });
 
-// GET /api/brand/:id - Get a specific brand
 /**
  * @swagger
  * /api/brand/{id}:
@@ -74,28 +83,27 @@ router.get("/", requireAuth, async (req: AuthenticatedRequest, res) => {
  *         description: Unauthorized
  */
 router.get("/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        const brand = await prisma.brandProfile.findFirst({
-            where: { id: id as string, userId: req.user!.id },
-            include: {
-                preferences: true,
-            },
-        });
+    const brand = await prisma.brandProfile.findFirst({
+      where: { id: id as string, userId: req.user!.id },
+      include: {
+        preferences: true,
+      },
+    });
 
-        if (!brand) {
-            return res.status(404).json({ error: "Brand not found" });
-        }
-
-        res.json({ brand });
-    } catch (error) {
-        console.error("Brand fetch error:", error);
-        res.status(500).json({ error: "Failed to fetch brand" });
+    if (!brand) {
+      return res.status(404).json({ error: "Brand not found" });
     }
+
+    res.json({ brand });
+  } catch (error) {
+    console.error("Brand fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch brand" });
+  }
 });
 
-// POST /api/brand - Create a new brand
 /**
  * @swagger
  * /api/brand:
@@ -119,6 +127,11 @@ router.get("/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
  *                 type: string
  *               toneOfVoice:
  *                 type: string
+ *               contentPillars:
+ *                 type: string
+ *               logoUrl:
+ *                 type: string
+ *                 format: uri
  *     responses:
  *       201:
  *         description: Brand created successfully
@@ -129,30 +142,42 @@ router.get("/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
  *               properties:
  *                 brand:
  *                   $ref: '#/components/schemas/BrandProfile'
+ *       400:
+ *         description: Validation error
  *       401:
  *         description: Unauthorized
  *       500:
  *         description: Server error
  */
 router.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
-    try {
-        const { brandName, industry, targetAudience, toneOfVoice } = req.body;
-
-        const brand = await prisma.brandProfile.create({
-            data: {
-                userId: req.user!.id,
-                brandName,
-                industry,
-                targetAudience,
-                toneOfVoice,
-            },
-        });
-
-        res.status(201).json({ brand });
-    } catch (error) {
-        console.error("Brand creation error:", error);
-        res.status(500).json({ error: "Failed to create brand" });
+  try {
+    const parsed = brandInputSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Invalid brand payload",
+        details: parsed.error.flatten(),
+      });
     }
+
+    const { brandName, industry, targetAudience, toneOfVoice, contentPillars, logoUrl } = parsed.data;
+
+    const brand = await prisma.brandProfile.create({
+      data: {
+        userId: req.user!.id,
+        brandName,
+        industry,
+        targetAudience,
+        toneOfVoice,
+        contentPillars,
+        logoUrl,
+      },
+    });
+
+    res.status(201).json({ brand });
+  } catch (error) {
+    console.error("Brand creation error:", error);
+    res.status(500).json({ error: "Failed to create brand" });
+  }
 });
 
 export { router as brandRouter };
