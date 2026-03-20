@@ -45,16 +45,23 @@ model BrandProfile {
 }
 
 model PreferenceProfile {
-  id                  String        @id @default(cuid())
-  brand               BrandProfile  @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  brandId             String        @unique
-  postingFrequency    String?
+  id                    String        @id @default(cuid())
+  brand                 BrandProfile  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId               String        @unique
+  postingFrequency      String?
+  approvalMode          ApprovalMode?
+  onboardingCompletedAt DateTime?
   preferredPostingTimes Json?
-  platformPriority    Json?
-  bannedTopics        String?
-  languages           String?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  platformPriority      Json?
+  bannedTopics          String?
+  languages             String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+}
+
+enum ApprovalMode {
+  MANUAL
+  AUTO_POST
 }
 
 enum SocialPlatform {
