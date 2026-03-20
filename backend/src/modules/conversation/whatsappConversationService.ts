@@ -28,6 +28,7 @@ interface ConversationContext {
 
 const RESET_MESSAGE = "Okay, I’ve reset our conversation. Tell me a bit about your brand to get started.";
 const SKIP_VALUES = new Set(["skip", "none", "no", "n/a"]);
+const RESUME_AFTER_MS = 30 * 60 * 1000;
 const FREQUENCY_LABELS: Record<PostingFrequency, string> = {
   daily: "daily",
   "3_per_week": "3x per week",
@@ -166,11 +167,21 @@ const getConversationContext = (state: { contextJson: Prisma.JsonValue | null })
   return ((state.contextJson as ConversationContext | null) ?? {}) as ConversationContext;
 };
 
-const resetConversation = async (stateId: string) => {
-  await prisma.conversationState.update({
+const touchConversation = async (
+  stateId: string,
+  data: Prisma.ConversationStateUncheckedUpdateInput = {}
+) => {
+  return prisma.conversationState.update({
     where: { id: stateId },
-    data: { currentStep: "WELCOME", contextJson: Prisma.JsonNull },
+    data: {
+      ...data,
+      lastMessageAt: new Date(),
+    },
   });
+};
+
+const resetConversation = async (stateId: string) => {
+  await touchConversation(stateId, { currentStep: "WELCOME", contextJson: Prisma.JsonNull });
 };
 
 const ensureBrandContext = async (stateId: string, context: ConversationContext): Promise<string | null> => {
@@ -254,6 +265,70 @@ const socialConnectionRequiredMessage = () => {
   ].join("\n");
 };
 
+const getStepPrompt = async (state: {
+  id: string;
+  userId?: string | null;
+  contextJson: Prisma.JsonValue | null;
+  currentStep?: string | null;
+}): Promise<string> => {
+  const step = (state.currentStep as ConversationStep | null) ?? "WELCOME";
+  const context = getConversationContext(state);
+
+  switch (step) {
+    case "ASK_BRAND_NAME":
+      return "First, what’s your brand or business name?";
+    case "ASK_INDUSTRY":
+      return "What industry or niche are you in? (e.g. fitness coaching, skincare, creator education)";
+    case "ASK_AUDIENCE":
+      return "Who’s your target audience? (e.g. busy professionals, small business owners, first-time founders)";
+    case "ASK_TONE":
+      return "What’s your brand’s tone of voice? (e.g. friendly and casual, professional and authoritative, witty and bold)";
+    case "ASK_CONTENT_PILLARS":
+      return "What 2 to 5 content pillars should I create around? Send them separated by commas.\n\nExample: education, testimonials, behind the scenes";
+    case "ASK_LOGO_URL":
+      return "Send your logo URL if you have one. I’ll use it later for generated social media images.\n\nReply skip if you don’t have one yet.";
+    case "ASK_POSTING_FREQUENCY":
+      return promptForPostingFrequency();
+    case "ASK_APPROVAL_MODE":
+      return promptForApprovalMode();
+    case "WAIT_FOR_SOCIAL_CONNECTION":
+      return socialConnectionRequiredMessage();
+    case "WELCOME":
+    case "READY":
+    default:
+      return "Tell me a bit about your brand to get started.";
+  }
+};
+
+const maybeResumeOnboarding = async (state: {
+  id: string;
+  userId?: string | null;
+  currentStep?: string | null;
+  lastMessageAt: Date;
+  contextJson: Prisma.JsonValue | null;
+}): Promise<string | null> => {
+  const step = (state.currentStep as ConversationStep | null) ?? "WELCOME";
+  if (step === "WELCOME" || step === "READY") {
+    return null;
+  }
+
+  const inactiveLongEnough = Date.now() - state.lastMessageAt.getTime() >= RESUME_AFTER_MS;
+  if (!inactiveLongEnough) {
+    return null;
+  }
+
+  const context = getConversationContext(state);
+  const brand = context.brandId
+    ? await prisma.brandProfile.findUnique({ where: { id: context.brandId } })
+    : null;
+  const brandLabel = brand?.brandName ? ` ${brand.brandName}` : "";
+  const prompt = await getStepPrompt(state);
+
+  await touchConversation(state.id);
+
+  return [`Welcome back${brandLabel}!`, "", `Let’s continue where we left off.`, prompt].join("\n");
+};
+
 export const handleIncomingWhatsAppText = async (params: HandleIncomingMessageParams): Promise<string> => {
   const { fromPhone, text } = params;
 
@@ -272,7 +347,6 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
     });
   }
 
-  const step = (state.currentStep as ConversationStep | null) ?? "WELCOME";
   const cleanedText = normalizeText(text);
 
   if (cleanedText.toLowerCase() === "reset") {
@@ -280,18 +354,23 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
     return RESET_MESSAGE;
   }
 
+  const resumeMessage = await maybeResumeOnboarding(state);
+  if (resumeMessage) {
+    return resumeMessage;
+  }
+
+  const step = (state.currentStep as ConversationStep | null) ?? "WELCOME";
+
   switch (step) {
     case "WELCOME": {
-      await prisma.conversationState.update({
-        where: { id: state.id },
-        data: { currentStep: "ASK_BRAND_NAME" },
-      });
+      await touchConversation(state.id, { currentStep: "ASK_BRAND_NAME" });
       return "Hey creator 👋 I’m your BrandqoAI assistant.\n\nFirst, what’s your brand or business name?";
     }
 
     case "ASK_BRAND_NAME": {
       const brandNameValidation = validateRequiredField(cleanedText, "brand name", { min: 2, max: 80 });
       if (!brandNameValidation.ok) {
+        await touchConversation(state.id);
         return brandNameValidation.message;
       }
 
@@ -341,14 +420,11 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         data: { name: brandNameValidation.value },
       });
 
-      await prisma.conversationState.update({
-        where: { id: state.id },
-        data: {
-          userId,
-          currentStep: "ASK_INDUSTRY",
-          contextJson: {
-            brandId,
-          },
+      await touchConversation(state.id, {
+        userId,
+        currentStep: "ASK_INDUSTRY",
+        contextJson: {
+          brandId,
         },
       });
 
@@ -363,6 +439,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
 
       const industryValidation = validateRequiredField(cleanedText, "industry or niche", { min: 2, max: 100 });
       if (!industryValidation.ok) {
+        await touchConversation(state.id);
         return industryValidation.message;
       }
 
@@ -373,11 +450,8 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         },
       });
 
-      await prisma.conversationState.update({
-        where: { id: state.id },
-        data: {
-          currentStep: "ASK_AUDIENCE",
-        },
+      await touchConversation(state.id, {
+        currentStep: "ASK_AUDIENCE",
       });
 
       return "Great. Who’s your target audience? (e.g. busy professionals, small business owners, first-time founders)";
@@ -391,6 +465,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
 
       const audienceValidation = validateRequiredField(cleanedText, "target audience", { min: 6, max: 180 });
       if (!audienceValidation.ok) {
+        await touchConversation(state.id);
         return audienceValidation.message;
       }
 
@@ -401,11 +476,8 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         },
       });
 
-      await prisma.conversationState.update({
-        where: { id: state.id },
-        data: {
-          currentStep: "ASK_TONE",
-        },
+      await touchConversation(state.id, {
+        currentStep: "ASK_TONE",
       });
 
       return "Perfect. What’s your brand’s tone of voice? (e.g. friendly and casual, professional and authoritative, witty and bold)";
@@ -419,6 +491,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
 
       const toneValidation = validateRequiredField(cleanedText, "tone of voice", { min: 4, max: 140 });
       if (!toneValidation.ok) {
+        await touchConversation(state.id);
         return toneValidation.message;
       }
 
@@ -429,11 +502,8 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         },
       });
 
-      await prisma.conversationState.update({
-        where: { id: state.id },
-        data: {
-          currentStep: "ASK_CONTENT_PILLARS",
-        },
+      await touchConversation(state.id, {
+        currentStep: "ASK_CONTENT_PILLARS",
       });
 
       return "Nice. What 2 to 5 content pillars should I create around? Send them separated by commas.\n\nExample: education, testimonials, behind the scenes";
@@ -447,6 +517,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
 
       const pillarsValidation = validateContentPillars(cleanedText);
       if (!pillarsValidation.ok) {
+        await touchConversation(state.id);
         return pillarsValidation.message;
       }
 
@@ -457,11 +528,8 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         },
       });
 
-      await prisma.conversationState.update({
-        where: { id: state.id },
-        data: {
-          currentStep: "ASK_LOGO_URL",
-        },
+      await touchConversation(state.id, {
+        currentStep: "ASK_LOGO_URL",
       });
 
       return "Last one for now: send your logo URL if you have one. I’ll use it later for generated social media images.\n\nReply skip if you don’t have one yet.";
@@ -475,6 +543,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
 
       const logoValidation = validateOptionalLogoUrl(cleanedText);
       if (!logoValidation.ok) {
+        await touchConversation(state.id);
         return logoValidation.message;
       }
 
@@ -491,20 +560,14 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
       const userHasSocialAccount = await hasConnectedSocialAccount(latestState?.userId);
 
       if (!userHasSocialAccount) {
-        await prisma.conversationState.update({
-          where: { id: state.id },
-          data: {
-            currentStep: "WAIT_FOR_SOCIAL_CONNECTION",
-          },
+        await touchConversation(state.id, {
+          currentStep: "WAIT_FOR_SOCIAL_CONNECTION",
         });
         return socialConnectionRequiredMessage();
       }
 
-      await prisma.conversationState.update({
-        where: { id: state.id },
-        data: {
-          currentStep: "ASK_POSTING_FREQUENCY",
-        },
+      await touchConversation(state.id, {
+        currentStep: "ASK_POSTING_FREQUENCY",
       });
 
       return promptForPostingFrequency();
@@ -515,13 +578,11 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
       const userHasSocialAccount = await hasConnectedSocialAccount(latestState?.userId);
 
       if (!userHasSocialAccount) {
+        await touchConversation(state.id);
         return socialConnectionRequiredMessage();
       }
 
-      await prisma.conversationState.update({
-        where: { id: state.id },
-        data: { currentStep: "ASK_POSTING_FREQUENCY" },
-      });
+      await touchConversation(state.id, { currentStep: "ASK_POSTING_FREQUENCY" });
 
       return [
         "Nice — I can see you have at least one social account connected now.",
@@ -538,6 +599,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
 
       const frequency = parsePostingFrequency(cleanedText);
       if (!frequency) {
+        await touchConversation(state.id);
         return `${promptForPostingFrequency()}\n\nPlease reply with 1, 2, 3, daily, 3x per week, or weekly.`;
       }
 
@@ -547,10 +609,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         create: { brandId, postingFrequency: frequency },
       });
 
-      await prisma.conversationState.update({
-        where: { id: state.id },
-        data: { currentStep: "ASK_APPROVAL_MODE" },
-      });
+      await touchConversation(state.id, { currentStep: "ASK_APPROVAL_MODE" });
 
       return `${FREQUENCY_LABELS[frequency]} — got it.\n\n${promptForApprovalMode()}`;
     }
@@ -563,15 +622,15 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
 
       const approvalMode = parseApprovalMode(cleanedText);
       if (!approvalMode) {
+        await touchConversation(state.id);
         return `${promptForApprovalMode()}\n\nPlease reply with 1, 2, manual, or auto-post.`;
       }
 
       const latestState = await prisma.conversationState.findUnique({ where: { id: state.id } });
       const userHasSocialAccount = await hasConnectedSocialAccount(latestState?.userId);
       if (!userHasSocialAccount) {
-        await prisma.conversationState.update({
-          where: { id: state.id },
-          data: { currentStep: "WAIT_FOR_SOCIAL_CONNECTION" },
+        await touchConversation(state.id, {
+          currentStep: "WAIT_FOR_SOCIAL_CONNECTION",
         });
         return socialConnectionRequiredMessage();
       }
@@ -590,10 +649,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         },
       });
 
-      await prisma.conversationState.update({
-        where: { id: state.id },
-        data: { currentStep: "READY" },
-      });
+      await touchConversation(state.id, { currentStep: "READY" });
 
       return onboardingCompletionMessage(
         (preference.postingFrequency as PostingFrequency) ?? "weekly",
@@ -603,6 +659,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
     }
 
     case "READY": {
+      await touchConversation(state.id);
       const brandId = await ensureBrandContext(state.id, getConversationContext(state));
       if (!brandId) {
         return "Looks like I lost your brand details. Let’s start again. What’s your brand name?";
