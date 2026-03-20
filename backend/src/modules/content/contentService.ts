@@ -31,6 +31,7 @@ export const generateTestContentForBrand = async (
     brand.targetAudience ? `Target audience: ${brand.targetAudience}` : null,
     brand.toneOfVoice ? `Tone of voice: ${brand.toneOfVoice}` : null,
     brand.contentPillars ? `Content pillars: ${brand.contentPillars}` : null,
+    brand.logoUrl ? `Brand logo URL: ${brand.logoUrl}` : null,
   ]
     .filter(Boolean)
     .join("\n");
