@@ -9,7 +9,13 @@ type ConversationStep =
   | "ASK_TONE"
   | "ASK_CONTENT_PILLARS"
   | "ASK_LOGO_URL"
+  | "ASK_POSTING_FREQUENCY"
+  | "ASK_APPROVAL_MODE"
+  | "WAIT_FOR_SOCIAL_CONNECTION"
   | "READY";
+
+type PostingFrequency = "daily" | "3_per_week" | "weekly";
+type ApprovalMode = "MANUAL" | "AUTO_POST";
 
 interface HandleIncomingMessageParams {
   fromPhone: string;
@@ -22,6 +28,15 @@ interface ConversationContext {
 
 const RESET_MESSAGE = "Okay, I’ve reset our conversation. Tell me a bit about your brand to get started.";
 const SKIP_VALUES = new Set(["skip", "none", "no", "n/a"]);
+const FREQUENCY_LABELS: Record<PostingFrequency, string> = {
+  daily: "daily",
+  "3_per_week": "3x per week",
+  weekly: "weekly",
+};
+const APPROVAL_LABELS: Record<ApprovalMode, string> = {
+  MANUAL: "manual approval",
+  AUTO_POST: "auto-post",
+};
 
 const normalizeText = (value: string) => value.trim().replace(/\s+/g, " ");
 
@@ -122,6 +137,31 @@ const validateOptionalLogoUrl = (
   }
 };
 
+const parsePostingFrequency = (input: string): PostingFrequency | null => {
+  const normalized = normalizeText(input).toLowerCase();
+  if (["1", "daily", "every day", "everyday"].includes(normalized)) {
+    return "daily";
+  }
+  if (["2", "3x", "3x per week", "three times per week", "3 per week"].includes(normalized)) {
+    return "3_per_week";
+  }
+  if (["3", "weekly", "once a week"].includes(normalized)) {
+    return "weekly";
+  }
+  return null;
+};
+
+const parseApprovalMode = (input: string): ApprovalMode | null => {
+  const normalized = normalizeText(input).toLowerCase();
+  if (["1", "manual", "manual approval", "approve manually"].includes(normalized)) {
+    return "MANUAL";
+  }
+  if (["2", "auto", "auto-post", "autopost", "automatic"].includes(normalized)) {
+    return "AUTO_POST";
+  }
+  return null;
+};
+
 const getConversationContext = (state: { contextJson: Prisma.JsonValue | null }): ConversationContext => {
   return ((state.contextJson as ConversationContext | null) ?? {}) as ConversationContext;
 };
@@ -140,6 +180,78 @@ const ensureBrandContext = async (stateId: string, context: ConversationContext)
   }
 
   return context.brandId;
+};
+
+const hasConnectedSocialAccount = async (userId: string | null | undefined): Promise<boolean> => {
+  if (!userId) {
+    return false;
+  }
+
+  const count = await prisma.socialAccount.count({
+    where: { userId },
+  });
+
+  return count > 0;
+};
+
+const ensurePreferenceProfile = async (brandId: string) => {
+  const existing = await prisma.preferenceProfile.findUnique({
+    where: { brandId },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.preferenceProfile.create({
+    data: { brandId },
+  });
+};
+
+const promptForPostingFrequency = () => {
+  return [
+    "Almost there. How often do you want BrandqoAI to post for you?",
+    "",
+    "Reply with one option:",
+    "1. daily",
+    "2. 3x per week",
+    "3. weekly",
+  ].join("\n");
+};
+
+const promptForApprovalMode = () => {
+  return [
+    "Nice. How should approvals work?",
+    "",
+    "Reply with one option:",
+    "1. manual approval",
+    "2. auto-post",
+  ].join("\n");
+};
+
+const onboardingCompletionMessage = (
+  frequency: PostingFrequency,
+  approvalMode: ApprovalMode,
+  logoSaved: boolean
+) => {
+  return [
+    "Awesome! Your onboarding is fully complete. 🎉",
+    "",
+    `Posting frequency: ${FREQUENCY_LABELS[frequency]}`,
+    `Approval mode: ${APPROVAL_LABELS[approvalMode]}`,
+    logoSaved ? "Logo: saved for future generated social media images" : "Logo: not saved yet",
+    "",
+    "Your content calendar is now being generated.",
+    "You can now ask me for content ideas, captions, and poster prompts while that gets prepared.",
+  ].join("\n");
+};
+
+const socialConnectionRequiredMessage = () => {
+  return [
+    "Your brand profile is saved, but onboarding cannot finish yet.",
+    "",
+    "Please connect at least one social account first, then message me again and I’ll continue with your posting frequency and approval settings.",
+  ].join("\n");
 };
 
 export const handleIncomingWhatsAppText = async (params: HandleIncomingMessageParams): Promise<string> => {
@@ -373,25 +485,121 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         },
       });
 
+      await ensurePreferenceProfile(brandId);
+
+      const latestState = await prisma.conversationState.findUnique({ where: { id: state.id } });
+      const userHasSocialAccount = await hasConnectedSocialAccount(latestState?.userId);
+
+      if (!userHasSocialAccount) {
+        await prisma.conversationState.update({
+          where: { id: state.id },
+          data: {
+            currentStep: "WAIT_FOR_SOCIAL_CONNECTION",
+          },
+        });
+        return socialConnectionRequiredMessage();
+      }
+
       await prisma.conversationState.update({
         where: { id: state.id },
         data: {
-          currentStep: "READY",
+          currentStep: "ASK_POSTING_FREQUENCY",
         },
       });
 
+      return promptForPostingFrequency();
+    }
+
+    case "WAIT_FOR_SOCIAL_CONNECTION": {
+      const latestState = await prisma.conversationState.findUnique({ where: { id: state.id } });
+      const userHasSocialAccount = await hasConnectedSocialAccount(latestState?.userId);
+
+      if (!userHasSocialAccount) {
+        return socialConnectionRequiredMessage();
+      }
+
+      await prisma.conversationState.update({
+        where: { id: state.id },
+        data: { currentStep: "ASK_POSTING_FREQUENCY" },
+      });
+
       return [
-        "Awesome! Your brand profile is set up. 🎉",
+        "Nice — I can see you have at least one social account connected now.",
         "",
-        logoValidation.value
-          ? "I’ve saved your logo too, so we can use it in future generated social media images."
-          : "No logo saved yet — that’s okay, we can add one later.",
-        "",
-        "You can now ask me for content ideas, captions, and poster prompts. For example:",
-        '- "I want 5 posts for next week about my new product launch"',
-        '- "Give me 3 hooks for an Instagram post about my webinar"',
-        '- "Create a carousel post idea about [topic]"',
+        promptForPostingFrequency(),
       ].join("\n");
+    }
+
+    case "ASK_POSTING_FREQUENCY": {
+      const brandId = await ensureBrandContext(state.id, getConversationContext(state));
+      if (!brandId) {
+        return "Let’s start again. What’s your brand name?";
+      }
+
+      const frequency = parsePostingFrequency(cleanedText);
+      if (!frequency) {
+        return `${promptForPostingFrequency()}\n\nPlease reply with 1, 2, 3, daily, 3x per week, or weekly.`;
+      }
+
+      await prisma.preferenceProfile.upsert({
+        where: { brandId },
+        update: { postingFrequency: frequency },
+        create: { brandId, postingFrequency: frequency },
+      });
+
+      await prisma.conversationState.update({
+        where: { id: state.id },
+        data: { currentStep: "ASK_APPROVAL_MODE" },
+      });
+
+      return `${FREQUENCY_LABELS[frequency]} — got it.\n\n${promptForApprovalMode()}`;
+    }
+
+    case "ASK_APPROVAL_MODE": {
+      const brandId = await ensureBrandContext(state.id, getConversationContext(state));
+      if (!brandId) {
+        return "Let’s start again. What’s your brand name?";
+      }
+
+      const approvalMode = parseApprovalMode(cleanedText);
+      if (!approvalMode) {
+        return `${promptForApprovalMode()}\n\nPlease reply with 1, 2, manual, or auto-post.`;
+      }
+
+      const latestState = await prisma.conversationState.findUnique({ where: { id: state.id } });
+      const userHasSocialAccount = await hasConnectedSocialAccount(latestState?.userId);
+      if (!userHasSocialAccount) {
+        await prisma.conversationState.update({
+          where: { id: state.id },
+          data: { currentStep: "WAIT_FOR_SOCIAL_CONNECTION" },
+        });
+        return socialConnectionRequiredMessage();
+      }
+
+      const brand = await prisma.brandProfile.findUnique({ where: { id: brandId } });
+      const preference = await prisma.preferenceProfile.upsert({
+        where: { brandId },
+        update: {
+          approvalMode,
+          onboardingCompletedAt: new Date(),
+        },
+        create: {
+          brandId,
+          approvalMode,
+          onboardingCompletedAt: new Date(),
+        },
+      });
+
+      await prisma.conversationState.update({
+        where: { id: state.id },
+        data: { currentStep: "READY" },
+      });
+
+      return onboardingCompletionMessage(
+        (preference.postingFrequency as PostingFrequency) ?? "weekly",
+        approvalMode,
+        Boolean(brand?.logoUrl)
+      );
     }
 
     case "READY": {
