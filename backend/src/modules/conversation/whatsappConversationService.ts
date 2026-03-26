@@ -1,5 +1,5 @@
 import { prisma, Prisma } from "../../db/client";
-import { generateTestContentForBrand } from "../content/contentService";
+import { generateMonthlyCalendarForBrand, generateTestContentForBrand } from "../content/contentService";
 
 type ConversationStep =
   | "WELCOME"
@@ -650,6 +650,17 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
       });
 
       await touchConversation(state.id, { currentStep: "READY" });
+
+      try {
+        await generateMonthlyCalendarForBrand(brandId);
+      } catch (error) {
+        console.error("Calendar generation failed after onboarding completion:", error);
+        return [
+          "Your onboarding is complete, but I hit a problem while generating your 30-day content calendar.",
+          "",
+          "I tried 3 times and it still failed. Please try again shortly or ask an admin to check the dashboard.",
+        ].join("\n");
+      }
 
       return onboardingCompletionMessage(
         (preference.postingFrequency as PostingFrequency) ?? "weekly",
