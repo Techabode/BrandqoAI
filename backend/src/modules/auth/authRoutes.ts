@@ -117,6 +117,7 @@ authRouter.post("/login", loginHandler);
  */
 authRouter.post("/logout", logoutHandler);
 authRouter.get("/whatsapp-link-login", consumeWhatsAppMagicLinkHandler);
+authRouter.post("/whatsapp-link-login", consumeWhatsAppMagicLinkHandler);
 
 /**
  * @swagger
