@@ -263,8 +263,8 @@ const getDashboardUrl = () => env.appUrl ?? env.corsOrigin?.replace(/\/$/, "") ?
 const getBackendPublicUrl = () => env.backendPublicUrl?.replace(/\/$/, "") ?? null;
 
 const createWhatsAppMagicDashboardLink = (params: { userId: string; fromPhone: string }) => {
-  const backendPublicUrl = getBackendPublicUrl();
-  if (!backendPublicUrl) {
+  const dashboardUrl = getDashboardUrl();
+  if (!dashboardUrl) {
     return null;
   }
 
@@ -273,7 +273,7 @@ const createWhatsAppMagicDashboardLink = (params: { userId: string; fromPhone: s
     whatsappPhone: params.fromPhone,
   });
 
-  return `${backendPublicUrl}/api/auth/whatsapp-link-login?token=${encodeURIComponent(token)}`;
+  return `${dashboardUrl}/whatsapp-login?token=${encodeURIComponent(token)}`;
 };
 
 const socialConnectionRequiredMessage = (params?: { userId?: string | null; fromPhone?: string }) => {
