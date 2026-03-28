@@ -9,8 +9,7 @@ COPY tsconfig.json ./
 COPY prisma.config.ts ./
 COPY prisma ./prisma
 
-RUN --mount=type=cache,id=cache-backend-npm,target=/root/.npm \
-    npm config set fetch-retries 5 && \
+RUN npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 20000 && \
     npm config set fetch-retry-maxtimeout 120000 && \
     npm install --prefer-offline --no-audit --progress=false
