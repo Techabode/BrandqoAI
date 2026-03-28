@@ -1,39 +1,53 @@
 import { env } from "../../config/env";
 
-interface TogetherResponse {
-    choices: Array<{
-        text: string;
+interface TogetherChatResponse {
+    choices?: Array<{
+        message?: {
+            content?: string;
+        };
     }>;
+    error?: {
+        message?: string;
+        code?: string;
+    };
 }
 
+const TOGETHER_MODEL = "deepseek-ai/DeepSeek-V3";
+
 export const generateCaption = async (prompt: string): Promise<string> => {
-    const response = await fetch("https://api.together.xyz/v1/completions", {
+    const response = await fetch("https://api.together.xyz/v1/chat/completions", {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${env.togetherApiKey}`,
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            model: "mistralai/Mistral-7B-Instruct-v0.2",
-            prompt: prompt,
+            model: TOGETHER_MODEL,
+            messages: [
+                {
+                    role: "user",
+                    content: prompt,
+                },
+            ],
             max_tokens: 1024,
             temperature: 0.7,
             top_p: 0.9,
-            top_k: 50,
         }),
     });
 
+    const data = await response.json() as TogetherChatResponse;
+
     if (!response.ok) {
-        throw new Error(`Together AI API error: ${response.status} ${response.statusText}`);
+        const details = data?.error?.message ? ` - ${data.error.message}` : "";
+        throw new Error(`Together AI API error: ${response.status} ${response.statusText}${details}`);
     }
 
-    const data = await response.json() as TogetherResponse;
-
-    if (!data.choices || data.choices.length === 0) {
-        throw new Error("No response from Mistral");
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) {
+        throw new Error(`No response from Together model ${TOGETHER_MODEL}`);
     }
 
-    return data.choices[0].text.trim();
+    return content;
 };
 
 export const generateImagePrompt = async (

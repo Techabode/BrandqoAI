@@ -12,6 +12,7 @@ interface GeneratedPostTemplate {
   imagePrompt: string;
 }
 
+
 interface GeneratedCalendarEntry {
   date?: string;
   topic: string;
@@ -124,11 +125,66 @@ const parseScheduledAt = (value: string | undefined, fallback: Date): Date => {
   return parsed;
 };
 
+const extractJsonPayload = (raw: string): unknown => {
+  const trimmed = raw.trim();
+
+  const tryParse = (value: string): unknown | null => {
+    try {
+      return JSON.parse(value) as unknown;
+    } catch {
+      return null;
+    }
+  };
+
+  if (trimmed.startsWith("```")) {
+    const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (fenced?.[1]) {
+      const parsed = tryParse(fenced[1].trim());
+      if (parsed !== null) {
+        return parsed;
+      }
+    }
+  }
+
+  for (let start = 0; start < trimmed.length; start++) {
+    if (trimmed[start] !== "[" && trimmed[start] !== "{") {
+      continue;
+    }
+
+    for (let end = trimmed.length - 1; end > start; end--) {
+      const candidate = trimmed.slice(start, end + 1);
+      const parsed = tryParse(candidate);
+      if (parsed !== null) {
+        return parsed;
+      }
+    }
+  }
+
+  throw new Error(`Model did not return parseable JSON: ${trimmed.slice(0, 200)}`);
+};
+
+const extractStructuredCalendarPayload = (raw: string): Array<Record<string, unknown>> => {
+  const parsed = extractJsonPayload(raw);
+  if (Array.isArray(parsed)) {
+    return parsed as Array<Record<string, unknown>>;
+  }
+  if (
+    parsed &&
+    typeof parsed === "object" &&
+    "entries" in parsed &&
+    Array.isArray((parsed as { entries?: unknown }).entries)
+  ) {
+    return (parsed as { entries: Array<Record<string, unknown>> }).entries;
+  }
+
+  throw new Error(`Model did not return a calendar array payload`);
+};
+
 const normalizeCalendarResponse = (
   raw: string,
   postingFrequency: string | null | undefined
 ): GeneratedCalendarEntry[] => {
-  const parsed = JSON.parse(raw) as Array<Record<string, unknown>>;
+  const parsed = extractStructuredCalendarPayload(raw);
 
   return parsed
     .filter((entry) => typeof entry.topic === "string" && typeof entry.caption === "string")
@@ -208,22 +264,36 @@ export const generateTestContentForBrand = async (
   try {
     const provider = createProvider();
 
-    const captionPrompt = `You are a social media copywriter for a creator. Generate 2 different Instagram captions based on the following:
+    const captionPrompt = `Generate exactly 2 Instagram caption options for this brand and topic.
 
 ${brandContext}
 
 Topic/Request: ${params.userPrompt}
 
-Generate exactly 2 captions. Separate them with "---". Each caption should be engaging, authentic to the brand, and end with a call-to-action or relevant emoji. Keep each under 150 characters for the hook.`;
+CRITICAL OUTPUT RULES:
+- Return ONLY valid JSON.
+- Do NOT include prose, explanations, markdown, bullets, numbering, headings, or code fences.
+- Start with [ and end with ].
+- Return exactly 2 objects.
+- Each object must have only one field: "caption".
+- Each caption should be engaging, authentic to the brand, and end with a call-to-action or relevant emoji.`;
 
-    const captionsText = await provider.generateCaption(brandContext, captionPrompt);
-    const captions = captionsText.split("---").map((c) => c.trim());
+    const captionsText = provider.generateJson
+      ? await provider.generateJson(captionPrompt, { maxRetries: 4 })
+      : await provider.generateCaption(brandContext, captionPrompt);
+    const parsedCaptions = extractJsonPayload(captionsText);
+    const captions = Array.isArray(parsedCaptions)
+      ? (parsedCaptions as Array<Record<string, unknown>>)
+          .map((item) => (typeof item.caption === "string" ? item.caption.trim() : ""))
+          .filter(Boolean)
+          .slice(0, 2)
+      : [];
 
     const ideas: GeneratedPostTemplate[] = [];
 
     for (const caption of captions) {
       if (caption) {
-        const imagePromptText = await provider.generateImagePrompt(caption, brandContext);
+        const imagePromptText = await provider.generateImagePrompt(brandContext, caption);
 
         ideas.push({
           caption,
@@ -285,21 +355,38 @@ Posting frequency: ${brand.preferences.postingFrequency ?? "weekly"}
 Posts needed across the next 30 days: ${postsNeeded}
 Timezone: ${brand.user.timezone ?? "UTC"}
 
-Return ONLY valid JSON as an array. Each item must contain:
+CRITICAL OUTPUT RULES:
+- Return ONLY valid JSON.
+- Do NOT include any prose, preface, explanation, markdown, code fences, or labels.
+- Start the first character with [ and end the final character with ].
+- The response must be a JSON array with exactly ${postsNeeded} objects.
+
+Each object must contain:
 - topic
 - caption
 - platforms (array containing one or more of INSTAGRAM, FACEBOOK, TWITTER)
 - scheduledAt (ISO datetime) OR date (YYYY-MM-DD)
+
+Example format:
+[
+  {
+    "topic": "Behind the scenes of building Oracus",
+    "caption": "A quick look behind the scenes as we build smarter workflows for creators.",
+    "platforms": ["INSTAGRAM"],
+    "date": "2026-03-28"
+  }
+]
 
 Rules:
 - create exactly ${postsNeeded} items
 - spread posts naturally across the next 30 days
 - make captions beginner-friendly and brand-aware
 - keep captions under 2200 characters
-- prefer INSTAGRAM unless another platform clearly fits
-- do not include markdown fences or commentary`;
+- prefer INSTAGRAM unless another platform clearly fits`;
 
-      const raw = await provider.generateCaption(brandContext, prompt);
+      const raw = provider.generateJson
+        ? await provider.generateJson(prompt, { maxRetries: 4 })
+        : await provider.generateCaption(brandContext, prompt);
       const entries = normalizeCalendarResponse(raw, brand.preferences.postingFrequency).slice(0, postsNeeded);
 
       if (entries.length !== postsNeeded) {
