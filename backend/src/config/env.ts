@@ -32,6 +32,7 @@ export const env = {
   whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
   whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN,
   anthropicApiKey: getApiKey("ANTHROPIC_API_KEY", aiProvider, "claude"),
+  anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6",
   replicateApiKey: process.env.REPLICATE_API_KEY,
   togetherApiKey: getApiKey("TOGETHER_API_KEY", aiProvider, "mistral") as string,
 };
