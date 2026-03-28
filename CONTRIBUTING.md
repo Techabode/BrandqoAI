@@ -243,6 +243,7 @@ BrandqoAI uses GitHub Actions for continuous integration and Railway deployment 
 - Pull requests targeting `develop` and `main` run automated checks for backend build health, frontend lint/build, and dependency scanning.
 - Pushes to `main` trigger automated Railway deployments for the `backend` and `frontend` services after CI passes.
 - Railway deployment automation expects GitHub repository secrets named `RAILWAY_TOKEN` and `RAILWAY_PROJECT_ID` to be configured.
+- Dependency audit results are surfaced in CI even when they are not yet merge-blocking, so contributors should still review and address them.
 - If a workflow fails, treat it as a merge blocker until the failure is understood and fixed.
 
 ### Before Opening a PR
