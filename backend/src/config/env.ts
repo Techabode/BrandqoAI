@@ -25,6 +25,8 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 4000),
   appUrl: process.env.APP_URL,
+  backendPublicUrl: process.env.BACKEND_PUBLIC_URL,
+  magicLinkSecret: process.env.MAGIC_LINK_SECRET ?? process.env.JWT_SECRET,
   databaseUrl: getEnv("DATABASE_URL"),
   jwtSecret: getEnv("JWT_SECRET"),
   corsOrigin: process.env.CORS_ORIGIN ?? "*",

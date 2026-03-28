@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "../../db/client";
 import { env } from "../../config/env";
 import type { AuthenticatedRequest } from "./authMiddleware";
+import { verifyWhatsAppMagicLinkToken } from "./magicLink";
 
 const registerSchema = z.object({
   name: z.string().min(1),
@@ -28,6 +29,18 @@ const verifyPassword = async (password: string, hash: string) => {
 
 const createToken = (userId: string) => {
   return jwt.sign({ userId }, env.jwtSecret, { expiresIn: "7d" });
+};
+
+const setAuthCookie = (res: Response, token: string) => {
+  const isProduction = env.nodeEnv === "production";
+
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
+  });
 };
 
 export const registerHandler = async (req: Request, res: Response) => {
@@ -91,16 +104,7 @@ export const loginHandler = async (req: Request, res: Response) => {
     return res.status(401).json({ message: "Something went wrong" });
   }
 
-  const isProduction = env.nodeEnv === "production";
-
-  // Set the cookie directly in the browser
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: "/",
-  });
+  setAuthCookie(res, token);
 
   return res.json({
     message: "Login successful",
@@ -127,6 +131,33 @@ export const logoutHandler = (req: Request, res: Response) => {
   return res.json({ message: "Logged out successfully" });
 };
 
+
+export const consumeWhatsAppMagicLinkHandler = async (req: Request, res: Response) => {
+  try {
+    const token = typeof req.query.token === "string" ? req.query.token : null;
+    if (!token) {
+      return res.status(400).json({ message: "Missing magic link token" });
+    }
+
+    const payload = verifyWhatsAppMagicLinkToken(token);
+    if (payload.purpose !== "whatsapp-dashboard-handoff") {
+      return res.status(400).json({ message: "Invalid magic link" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const authToken = createToken(user.id);
+    setAuthCookie(res, authToken);
+
+    const destination = env.appUrl ? `${env.appUrl.replace(/\/$/, "")}/dashboard` : "/dashboard";
+    return res.redirect(destination);
+  } catch {
+    return res.status(401).json({ message: "Invalid or expired magic link" });
+  }
+};
 
 export const meHandler = async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {
