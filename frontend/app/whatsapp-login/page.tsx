@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
 type Status = "loading" | "error";
 
-export default function WhatsAppLoginPage() {
+function WhatsAppLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = useMemo(() => searchParams.get("token"), [searchParams]);
@@ -56,5 +56,22 @@ export default function WhatsAppLoginPage() {
         <p className="text-sm text-muted-foreground">{message}</p>
       </div>
     </main>
+  );
+}
+
+export default function WhatsAppLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-background flex items-center justify-center px-6">
+          <div className="card max-w-xl p-8 text-center space-y-4">
+            <h1 className="text-2xl font-heading font-semibold text-foreground">Signing you in</h1>
+            <p className="text-sm text-muted-foreground">Preparing your secure WhatsApp handoff...</p>
+          </div>
+        </main>
+      }
+    >
+      <WhatsAppLoginContent />
+    </Suspense>
   );
 }
