@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerHandler, loginHandler, meHandler, logoutHandler } from "./authController";
+import { registerHandler, loginHandler, meHandler, logoutHandler, consumeWhatsAppMagicLinkHandler } from "./authController";
 import { requireAuth } from "./authMiddleware";
 
 export const authRouter = Router();
@@ -116,7 +116,7 @@ authRouter.post("/login", loginHandler);
  *         description: Unauthorized (if session was already invalid)
  */
 authRouter.post("/logout", logoutHandler);
-
+authRouter.get("/whatsapp-link-login", consumeWhatsAppMagicLinkHandler);
 
 /**
  * @swagger
