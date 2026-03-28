@@ -1,5 +1,6 @@
 import { prisma, Prisma } from "../../db/client";
 import { env } from "../../config/env";
+import { createWhatsAppMagicLinkToken } from "../auth/magicLink";
 import { generateMonthlyCalendarForBrand, generateTestContentForBrand } from "../content/contentService";
 
 type ConversationStep =
@@ -259,15 +260,34 @@ const onboardingCompletionMessage = (
 };
 
 const getDashboardUrl = () => env.appUrl ?? env.corsOrigin?.replace(/\/$/, "") ?? null;
+const getBackendPublicUrl = () => env.backendPublicUrl?.replace(/\/$/, "") ?? null;
 
-const socialConnectionRequiredMessage = () => {
+const createWhatsAppMagicDashboardLink = (params: { userId: string; fromPhone: string }) => {
+  const backendPublicUrl = getBackendPublicUrl();
+  if (!backendPublicUrl) {
+    return null;
+  }
+
+  const token = createWhatsAppMagicLinkToken({
+    userId: params.userId,
+    whatsappPhone: params.fromPhone,
+  });
+
+  return `${backendPublicUrl}/api/auth/whatsapp-link-login?token=${encodeURIComponent(token)}`;
+};
+
+const socialConnectionRequiredMessage = (params?: { userId?: string | null; fromPhone?: string }) => {
+  const magicLink =
+    params?.userId && params?.fromPhone
+      ? createWhatsAppMagicDashboardLink({ userId: params.userId, fromPhone: params.fromPhone })
+      : null;
   const dashboardUrl = getDashboardUrl();
 
   return [
     "Your brand profile is saved, but onboarding cannot finish yet.",
     "",
     "Please connect at least one social account first on the web dashboard, then message me again and I’ll continue with your posting frequency and approval settings.",
-    dashboardUrl ? `Dashboard: ${dashboardUrl}/dashboard` : null,
+    magicLink ? `Secure sign-in link: ${magicLink}` : dashboardUrl ? `Dashboard: ${dashboardUrl}/dashboard` : null,
     "",
     "After you connect a social account, come back here and send any message to continue.",
   ]
@@ -302,7 +322,7 @@ const getStepPrompt = async (state: {
     case "ASK_APPROVAL_MODE":
       return promptForApprovalMode();
     case "WAIT_FOR_SOCIAL_CONNECTION":
-      return socialConnectionRequiredMessage();
+      return socialConnectionRequiredMessage({ userId: state.userId });
     case "WELCOME":
     case "READY":
     default:
@@ -573,7 +593,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         await touchConversation(state.id, {
           currentStep: "WAIT_FOR_SOCIAL_CONNECTION",
         });
-        return socialConnectionRequiredMessage();
+        return socialConnectionRequiredMessage({ userId: latestState?.userId, fromPhone });
       }
 
       await touchConversation(state.id, {
@@ -589,7 +609,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
 
       if (!userHasSocialAccount) {
         await touchConversation(state.id);
-        return socialConnectionRequiredMessage();
+        return socialConnectionRequiredMessage({ userId: latestState?.userId, fromPhone });
       }
 
       await touchConversation(state.id, { currentStep: "ASK_POSTING_FREQUENCY" });
@@ -642,7 +662,7 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         await touchConversation(state.id, {
           currentStep: "WAIT_FOR_SOCIAL_CONNECTION",
         });
-        return socialConnectionRequiredMessage();
+        return socialConnectionRequiredMessage({ userId: latestState?.userId, fromPhone });
       }
 
       const brand = await prisma.brandProfile.findUnique({ where: { id: brandId } });
