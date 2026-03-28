@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN --mount=type=cache,id=frontend-npm-cache,target=/root/.npm \
+RUN --mount=type=cache,id=cache-frontend-npm,target=/root/.npm \
     npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 20000 && \
     npm config set fetch-retry-maxtimeout 120000 && \
