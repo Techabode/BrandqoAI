@@ -24,6 +24,7 @@ const getApiKey = (key: string, provider: string, expectedProvider: string): str
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 4000),
+  appUrl: process.env.APP_URL,
   databaseUrl: getEnv("DATABASE_URL"),
   jwtSecret: getEnv("JWT_SECRET"),
   corsOrigin: process.env.CORS_ORIGIN ?? "*",

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CalendarDays, CheckCircle2, Clock3, Layers3, Loader2, LogOut, Moon, Pencil, Sparkles, Sun, Trash2 } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock3, Layers3, Link as LinkIcon, Loader2, LogOut, Moon, Pencil, Sparkles, Sun, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect, useMemo } from "react";
 import { useAuthGuard } from "@/components/hooks/useAuthGuard";
@@ -199,6 +199,27 @@ export default function DashboardPage() {
             value={data?.summary.upcomingCount ?? 0}
             subtitle="Posts still waiting to be published."
           />
+        </section>
+
+        <section className="card p-6 border border-dashed border-border">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-foreground">
+                <LinkIcon className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-heading font-semibold">Social account connection</h2>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                WhatsApp onboarding expects at least one connected social account before it can finish your posting frequency and approval setup.
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                For now, the actual social account connection flow is still being implemented. If WhatsApp told you to connect an account here, that handoff is now clearer, but the full connect flow is not live yet.
+              </p>
+            </div>
+            <Button variant="outline" className="gap-2" disabled>
+              <LinkIcon className="h-4 w-4" />
+              Connect social account (coming soon)
+            </Button>
+          </div>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-3">

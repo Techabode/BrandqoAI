@@ -1,4 +1,5 @@
 import { prisma, Prisma } from "../../db/client";
+import { env } from "../../config/env";
 import { generateMonthlyCalendarForBrand, generateTestContentForBrand } from "../content/contentService";
 
 type ConversationStep =
@@ -257,12 +258,21 @@ const onboardingCompletionMessage = (
   ].join("\n");
 };
 
+const getDashboardUrl = () => env.appUrl ?? env.corsOrigin?.replace(/\/$/, "") ?? null;
+
 const socialConnectionRequiredMessage = () => {
+  const dashboardUrl = getDashboardUrl();
+
   return [
     "Your brand profile is saved, but onboarding cannot finish yet.",
     "",
-    "Please connect at least one social account first, then message me again and I’ll continue with your posting frequency and approval settings.",
-  ].join("\n");
+    "Please connect at least one social account first on the web dashboard, then message me again and I’ll continue with your posting frequency and approval settings.",
+    dashboardUrl ? `Dashboard: ${dashboardUrl}/dashboard` : null,
+    "",
+    "After you connect a social account, come back here and send any message to continue.",
+  ]
+    .filter(Boolean)
+    .join("\n");
 };
 
 const getStepPrompt = async (state: {
