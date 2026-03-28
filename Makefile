@@ -15,6 +15,9 @@ down:
 build:
 	$(COMPOSE) build
 
+build-no-cache:
+	$(COMPOSE) build --no-cache
+
 logs:
 	$(COMPOSE) logs -f
 
