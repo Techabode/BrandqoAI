@@ -132,30 +132,60 @@ export const logoutHandler = (req: Request, res: Response) => {
 };
 
 
+const resolveMagicLinkToken = (req: Request) => {
+  if (typeof req.query.token === "string") {
+    return req.query.token;
+  }
+
+  if (req.body && typeof req.body.token === "string") {
+    return req.body.token;
+  }
+
+  return null;
+};
+
+const authenticateFromMagicLink = async (token: string, res: Response) => {
+  const payload = verifyWhatsAppMagicLinkToken(token);
+  if (payload.purpose !== "whatsapp-dashboard-handoff") {
+    throw new Error("Invalid magic link");
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const authToken = createToken(user.id);
+  setAuthCookie(res, authToken);
+
+  return user;
+};
+
 export const consumeWhatsAppMagicLinkHandler = async (req: Request, res: Response) => {
   try {
-    const token = typeof req.query.token === "string" ? req.query.token : null;
+    const token = resolveMagicLinkToken(req);
     if (!token) {
       return res.status(400).json({ message: "Missing magic link token" });
     }
 
-    const payload = verifyWhatsAppMagicLinkToken(token);
-    if (payload.purpose !== "whatsapp-dashboard-handoff") {
-      return res.status(400).json({ message: "Invalid magic link" });
-    }
+    const user = await authenticateFromMagicLink(token, res);
 
-    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    if (req.method === "POST") {
+      return res.json({
+        message: "Magic link login successful",
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
+      });
     }
-
-    const authToken = createToken(user.id);
-    setAuthCookie(res, authToken);
 
     const destination = env.appUrl ? `${env.appUrl.replace(/\/$/, "")}/dashboard` : "/dashboard";
     return res.redirect(destination);
-  } catch {
-    return res.status(401).json({ message: "Invalid or expired magic link" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid or expired magic link";
+    return res.status(401).json({ message });
   }
 };
 
