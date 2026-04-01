@@ -48,7 +48,8 @@ model PreferenceProfile {
   id                    String        @id @default(cuid())
   brand                 BrandProfile  @relation(fields: [brandId], references: [id], onDelete: Cascade)
   brandId               String        @unique
-  postingFrequency      String?
+  postingDaysPerWeek    Int?
+  postsPerDay           Int?
   approvalMode          ApprovalMode?
   onboardingCompletedAt DateTime?
   preferredPostingTimes Json?
