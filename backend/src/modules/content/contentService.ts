@@ -52,34 +52,26 @@ const buildBrandContext = (brand: {
     .join("\n");
 };
 
-const getPostsPer30Days = (postingFrequency: string | null | undefined): number => {
-  switch (postingFrequency) {
-    case "daily":
-      return 30;
-    case "3_per_week":
-      return 13;
-    case "weekly":
-    default:
-      return 4;
-  }
+interface PostingFrequencySettings {
+  postingDaysPerWeek: number;
+  postsPerDay: number;
+}
+
+const getPostsPer30Days = (settings: PostingFrequencySettings): number => {
+  const weeksIn30Days = 30 / 7;
+  return Math.round(settings.postingDaysPerWeek * settings.postsPerDay * weeksIn30Days);
 };
 
-const getDaySpacing = (postingFrequency: string | null | undefined): number => {
-  switch (postingFrequency) {
-    case "daily":
-      return 1;
-    case "3_per_week":
-      return 2;
-    case "weekly":
-    default:
-      return 7;
-  }
+const getDaySpacing = (settings: PostingFrequencySettings): number => {
+  return Math.max(1, Math.floor(7 / settings.postingDaysPerWeek));
 };
 
-const deriveScheduleDate = (index: number, postingFrequency: string | null | undefined): Date => {
+const deriveScheduleDate = (index: number, settings: PostingFrequencySettings): Date => {
   const date = new Date();
   date.setUTCHours(10, 0, 0, 0);
-  date.setUTCDate(date.getUTCDate() + index * getDaySpacing(postingFrequency));
+  const postsPerDay = settings.postsPerDay;
+  const dayIndex = Math.floor(index / postsPerDay);
+  date.setUTCDate(date.getUTCDate() + dayIndex * getDaySpacing(settings));
   return date;
 };
 
@@ -182,14 +174,14 @@ const extractStructuredCalendarPayload = (raw: string): Array<Record<string, unk
 
 const normalizeCalendarResponse = (
   raw: string,
-  postingFrequency: string | null | undefined
+  frequencySettings: PostingFrequencySettings
 ): GeneratedCalendarEntry[] => {
   const parsed = extractStructuredCalendarPayload(raw);
 
   return parsed
     .filter((entry) => typeof entry.topic === "string" && typeof entry.caption === "string")
     .map((entry, index) => {
-      const fallbackDate = deriveScheduleDate(index, postingFrequency);
+      const fallbackDate = deriveScheduleDate(index, frequencySettings);
       const dateValue =
         typeof entry.scheduledAt === "string"
           ? entry.scheduledAt
@@ -342,7 +334,11 @@ export const generateMonthlyCalendarForBrand = async (brandId: string): Promise<
   }
 
   const brandContext = buildBrandContext(brand);
-  const postsNeeded = getPostsPer30Days(brand.preferences.postingFrequency);
+  const frequencySettings: PostingFrequencySettings = {
+    postingDaysPerWeek: brand.preferences.postingDaysPerWeek ?? 1,
+    postsPerDay: brand.preferences.postsPerDay ?? 1,
+  };
+  const postsNeeded = getPostsPer30Days(frequencySettings);
   const provider = createProvider();
 
   let lastError: unknown;
@@ -351,7 +347,7 @@ export const generateMonthlyCalendarForBrand = async (brandId: string): Promise<
       const prompt = `You are creating a 30-day social media content calendar.
 
 ${brandContext}
-Posting frequency: ${brand.preferences.postingFrequency ?? "weekly"}
+Posting schedule: ${frequencySettings.postingDaysPerWeek} days per week, ${frequencySettings.postsPerDay} posts per posting day
 Posts needed across the next 30 days: ${postsNeeded}
 Timezone: ${brand.user.timezone ?? "UTC"}
 
@@ -387,7 +383,7 @@ Rules:
       const raw = provider.generateJson
         ? await provider.generateJson(prompt, { maxRetries: 4 })
         : await provider.generateCaption(brandContext, prompt);
-      const entries = normalizeCalendarResponse(raw, brand.preferences.postingFrequency).slice(0, postsNeeded);
+      const entries = normalizeCalendarResponse(raw, frequencySettings).slice(0, postsNeeded);
 
       if (entries.length !== postsNeeded) {
         throw new Error(`Calendar generation returned ${entries.length} entries instead of ${postsNeeded}`);
