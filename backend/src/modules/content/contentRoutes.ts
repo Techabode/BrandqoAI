@@ -27,7 +27,7 @@ const resolveDashboardStatus = (
 const serializeEntry = (brand: {
   id: string;
   brandName: string;
-  preferences: { postingFrequency: string | null; approvalMode?: "MANUAL" | "AUTO_POST" | null } | null;
+  preferences: { postingDaysPerWeek: number | null; postsPerDay: number | null; approvalMode?: "MANUAL" | "AUTO_POST" | null } | null;
 }, template: {
   id: string;
   caption: string;
@@ -55,7 +55,8 @@ const serializeEntry = (brand: {
   approvalMode: brand.preferences?.approvalMode ?? null,
   scheduledTime: scheduledPost.scheduledTime,
   errorMessage: scheduledPost.errorMessage,
-  postingFrequency: brand.preferences?.postingFrequency ?? null,
+  postingDaysPerWeek: brand.preferences?.postingDaysPerWeek ?? null,
+  postsPerDay: brand.preferences?.postsPerDay ?? null,
 });
 
 // POST /api/content/generate - Generate content for a brand
@@ -169,7 +170,8 @@ router.get("/calendar", requireAuth, async (req: AuthenticatedRequest, res) => {
         targetAudience: brand.targetAudience,
         toneOfVoice: brand.toneOfVoice,
         contentPillars: brand.contentPillars,
-        postingFrequency: brand.preferences?.postingFrequency ?? null,
+        postingDaysPerWeek: brand.preferences?.postingDaysPerWeek ?? null,
+        postsPerDay: brand.preferences?.postsPerDay ?? null,
         approvalMode: brand.preferences?.approvalMode ?? null,
       })),
       summary: {
