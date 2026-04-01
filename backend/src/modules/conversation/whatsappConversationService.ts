@@ -11,12 +11,12 @@ type ConversationStep =
   | "ASK_TONE"
   | "ASK_CONTENT_PILLARS"
   | "ASK_LOGO_URL"
-  | "ASK_POSTING_FREQUENCY"
+  | "ASK_POSTING_DAYS"
+  | "ASK_POSTS_PER_DAY"
   | "ASK_APPROVAL_MODE"
   | "WAIT_FOR_SOCIAL_CONNECTION"
   | "READY";
 
-type PostingFrequency = "daily" | "3_per_week" | "weekly";
 type ApprovalMode = "MANUAL" | "AUTO_POST";
 
 interface HandleIncomingMessageParams {
@@ -26,16 +26,12 @@ interface HandleIncomingMessageParams {
 
 interface ConversationContext {
   brandId?: string;
+  postingDaysPerWeek?: number;
 }
 
 const RESET_MESSAGE = "Okay, I’ve reset our conversation. Tell me a bit about your brand to get started.";
 const SKIP_VALUES = new Set(["skip", "none", "no", "n/a"]);
 const RESUME_AFTER_MS = 30 * 60 * 1000;
-const FREQUENCY_LABELS: Record<PostingFrequency, string> = {
-  daily: "daily",
-  "3_per_week": "3x per week",
-  weekly: "weekly",
-};
 const APPROVAL_LABELS: Record<ApprovalMode, string> = {
   MANUAL: "manual approval",
   AUTO_POST: "auto-post",
@@ -140,17 +136,18 @@ const validateOptionalLogoUrl = (
   }
 };
 
-const parsePostingFrequency = (input: string): PostingFrequency | null => {
+const parsePostingDaysPerWeek = (input: string): number | null => {
   const normalized = normalizeText(input).toLowerCase();
-  if (["1", "daily", "every day", "everyday"].includes(normalized)) {
-    return "daily";
-  }
-  if (["2", "3x", "3x per week", "three times per week", "3 per week"].includes(normalized)) {
-    return "3_per_week";
-  }
-  if (["3", "weekly", "once a week"].includes(normalized)) {
-    return "weekly";
-  }
+  if (["1", "one", "1 day"].includes(normalized)) return 1;
+  if (["2", "two", "2 days"].includes(normalized)) return 2;
+  if (["3", "three", "3 days"].includes(normalized)) return 3;
+  return null;
+};
+
+const parsePostsPerDay = (input: string): number | null => {
+  const normalized = normalizeText(input).toLowerCase();
+  if (["1", "one", "1 post"].includes(normalized)) return 1;
+  if (["2", "two", "2 posts"].includes(normalized)) return 2;
   return null;
 };
 
@@ -221,41 +218,63 @@ const ensurePreferenceProfile = async (brandId: string) => {
   });
 };
 
-const promptForPostingFrequency = () => {
+const promptForPostingDays = () => {
   return [
-    "Almost there. How often do you want BrandqoAI to post for you?",
+    "Almost there. How many days per week do you want BrandqoAI to post for you?",
     "",
     "Reply with one option:",
-    "1. daily",
-    "2. 3x per week",
-    "3. weekly",
+    "1. 1 day per week",
+    "2. 2 days per week",
+    "3. 3 days per week",
+  ].join("\n");
+};
+
+const promptForPostsPerDay = () => {
+  return [
+    "Got it. How many posts do you want on each posting day?",
+    "",
+    "Reply with one option:",
+    "1. 1 post per day",
+    "2. 2 posts per day",
+  ].join("\n");
+};
+
+const approvalModeExplanation = () => {
+  return [
+    "Before you choose, here's how each approval mode works:",
+    "",
+    "*Manual Approval* — Every post is drafted and queued for your review. Nothing goes live until you approve it on the dashboard. Best if you want full control over every caption and image before it's published.",
+    "",
+    "*Auto-Post* — Posts are automatically scheduled and published at the planned time without waiting for your approval. You can still edit or cancel upcoming posts on the dashboard, but the default is hands-off. Best if you want a set-it-and-forget-it workflow.",
   ].join("\n");
 };
 
 const promptForApprovalMode = () => {
   return [
-    "Nice. How should approvals work?",
+    "How should approvals work?",
     "",
     "Reply with one option:",
-    "1. manual approval",
-    "2. auto-post",
+    "1. Manual Approval",
+    "2. Auto-Post",
   ].join("\n");
 };
 
 const onboardingCompletionMessage = (
-  frequency: PostingFrequency,
+  postingDaysPerWeek: number,
+  postsPerDay: number,
   approvalMode: ApprovalMode,
   logoSaved: boolean
 ) => {
+  const totalPerWeek = postingDaysPerWeek * postsPerDay;
   return [
-    "Awesome! Your onboarding is fully complete. 🎉",
+    "You're all set! Your BrandqoAI account is now fully configured. 🎉",
     "",
-    `Posting frequency: ${FREQUENCY_LABELS[frequency]}`,
+    `Posting schedule: ${postingDaysPerWeek} day${postingDaysPerWeek > 1 ? "s" : ""}/week, ${postsPerDay} post${postsPerDay > 1 ? "s" : ""}/day (${totalPerWeek} post${totalPerWeek > 1 ? "s" : ""}/week total)`,
     `Approval mode: ${APPROVAL_LABELS[approvalMode]}`,
     logoSaved ? "Logo: saved for future generated social media images" : "Logo: not saved yet",
     "",
-    "Your content calendar is now being generated.",
-    "You can now ask me for content ideas, captions, and poster prompts while that gets prepared.",
+    "Your content calendar is now being generated. I'll have it ready shortly.",
+    "In the meantime, you can ask me for content ideas, captions, and poster prompts.",
   ].join("\n");
 };
 
@@ -317,10 +336,12 @@ const getStepPrompt = async (state: {
       return "What 2 to 5 content pillars should I create around? Send them separated by commas.\n\nExample: education, testimonials, behind the scenes";
     case "ASK_LOGO_URL":
       return "Send your logo URL if you have one. I’ll use it later for generated social media images.\n\nReply skip if you don’t have one yet.";
-    case "ASK_POSTING_FREQUENCY":
-      return promptForPostingFrequency();
+    case "ASK_POSTING_DAYS":
+      return promptForPostingDays();
+    case "ASK_POSTS_PER_DAY":
+      return promptForPostsPerDay();
     case "ASK_APPROVAL_MODE":
-      return promptForApprovalMode();
+      return `${approvalModeExplanation()}\n\n${promptForApprovalMode()}`;
     case "WAIT_FOR_SOCIAL_CONNECTION":
       return socialConnectionRequiredMessage({ userId: state.userId });
     case "WELCOME":
@@ -597,10 +618,10 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
       }
 
       await touchConversation(state.id, {
-        currentStep: "ASK_POSTING_FREQUENCY",
+        currentStep: "ASK_POSTING_DAYS",
       });
 
-      return promptForPostingFrequency();
+      return promptForPostingDays();
     }
 
     case "WAIT_FOR_SOCIAL_CONNECTION": {
@@ -612,36 +633,67 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
         return socialConnectionRequiredMessage({ userId: latestState?.userId, fromPhone });
       }
 
-      await touchConversation(state.id, { currentStep: "ASK_POSTING_FREQUENCY" });
+      await touchConversation(state.id, { currentStep: "ASK_POSTING_DAYS" });
 
       return [
         "Nice — I can see you have at least one social account connected now.",
         "",
-        promptForPostingFrequency(),
+        promptForPostingDays(),
       ].join("\n");
     }
 
-    case "ASK_POSTING_FREQUENCY": {
+    case "ASK_POSTING_DAYS": {
       const brandId = await ensureBrandContext(state.id, getConversationContext(state));
       if (!brandId) {
         return "Let’s start again. What’s your brand name?";
       }
 
-      const frequency = parsePostingFrequency(cleanedText);
-      if (!frequency) {
+      const postingDays = parsePostingDaysPerWeek(cleanedText);
+      if (!postingDays) {
         await touchConversation(state.id);
-        return `${promptForPostingFrequency()}\n\nPlease reply with 1, 2, 3, daily, 3x per week, or weekly.`;
+        return `${promptForPostingDays()}\n\nPlease reply with 1, 2, or 3.`;
       }
+
+      const context = getConversationContext(state);
+      await touchConversation(state.id, {
+        currentStep: "ASK_POSTS_PER_DAY",
+        contextJson: { ...context, postingDaysPerWeek: postingDays },
+      });
+
+      return `${postingDays} day${postingDays > 1 ? "s" : ""} per week — got it.\n\n${promptForPostsPerDay()}`;
+    }
+
+    case "ASK_POSTS_PER_DAY": {
+      const brandId = await ensureBrandContext(state.id, getConversationContext(state));
+      if (!brandId) {
+        return "Let’s start again. What’s your brand name?";
+      }
+
+      const postsPerDay = parsePostsPerDay(cleanedText);
+      if (!postsPerDay) {
+        await touchConversation(state.id);
+        return `${promptForPostsPerDay()}\n\nPlease reply with 1 or 2.`;
+      }
+
+      const context = getConversationContext(state);
+      const postingDaysPerWeek = context.postingDaysPerWeek ?? 1;
 
       await prisma.preferenceProfile.upsert({
         where: { brandId },
-        update: { postingFrequency: frequency },
-        create: { brandId, postingFrequency: frequency },
+        update: { postingDaysPerWeek, postsPerDay },
+        create: { brandId, postingDaysPerWeek, postsPerDay },
       });
 
       await touchConversation(state.id, { currentStep: "ASK_APPROVAL_MODE" });
 
-      return `${FREQUENCY_LABELS[frequency]} — got it.\n\n${promptForApprovalMode()}`;
+      const totalPerWeek = postingDaysPerWeek * postsPerDay;
+      return [
+        `${postsPerDay} post${postsPerDay > 1 ? "s" : ""} per day — that’s ${totalPerWeek} post${totalPerWeek > 1 ? "s" : ""} per week total.`,
+        "",
+        approvalModeExplanation(),
+        "",
+        promptForApprovalMode(),
+      ].join("\n");
     }
 
     case "ASK_APPROVAL_MODE": {
@@ -681,6 +733,9 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
 
       await touchConversation(state.id, { currentStep: "READY" });
 
+      const postingDaysPerWeek = preference.postingDaysPerWeek ?? 1;
+      const postsPerDay = preference.postsPerDay ?? 1;
+
       try {
         await generateMonthlyCalendarForBrand(brandId);
       } catch (error) {
@@ -693,7 +748,8 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
       }
 
       return onboardingCompletionMessage(
-        (preference.postingFrequency as PostingFrequency) ?? "weekly",
+        postingDaysPerWeek,
+        postsPerDay,
         approvalMode,
         Boolean(brand?.logoUrl)
       );
