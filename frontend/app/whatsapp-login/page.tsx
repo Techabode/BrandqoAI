@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
+if (typeof window !== "undefined") {
+  console.log("[BrandqoAI] NEXT_PUBLIC_API_BASE_URL:", process.env.NEXT_PUBLIC_API_BASE_URL);
+  console.log("[BrandqoAI] Resolved API_BASE_URL:", API_BASE_URL);
+}
+
 type Status = "loading" | "error";
 
 function WhatsAppLoginContent() {
