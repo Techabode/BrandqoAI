@@ -344,7 +344,10 @@ const getStepPrompt = async (state: {
     case "ASK_APPROVAL_MODE":
       return `${approvalModeExplanation()}\n\n${promptForApprovalMode()}`;
     case "WAIT_FOR_SOCIAL_CONNECTION":
-      return socialConnectionRequiredMessage({ userId: state.userId, fromPhone: state.whatsappPhone });
+      return socialConnectionRequiredMessage({
+        userId: state.userId,
+        fromPhone: state.whatsappPhone ?? undefined,
+      });
     case "WELCOME":
     case "READY":
     default:
