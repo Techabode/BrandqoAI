@@ -1,14 +1,24 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CalendarDays, CheckCircle2, Clock3, Layers3, Link as LinkIcon, Loader2, LogOut, Moon, Pencil, Sparkles, Sun, Trash2 } from "lucide-react";
-import { useTheme } from "next-themes";
+import {
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Layers3,
+  Loader2,
+  Pencil,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useAuthGuard } from "@/components/hooks/useAuthGuard";
 import { DashboardEntry, useDashboardData } from "@/components/hooks/useDashboardData";
 import { useBrandSettings } from "@/components/hooks/useBrandSettings";
 import { BrandSettingsCard } from "@/components/BrandSettingsCard";
 import { SocialAccountsCard } from "@/components/SocialAccountsCard";
+import { DashboardShell } from "@/components/DashboardShell";
+import { type DashboardSectionKey } from "@/components/DashboardSidebar";
 
 const platformStyles: Record<string, string> = {
   INSTAGRAM: "platform-instagram",
@@ -64,10 +74,11 @@ const StatCard = ({
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<DashboardSectionKey>("overview");
   const [editingEntry, setEditingEntry] = useState<DashboardEntry | null>(null);
   const [editCaption, setEditCaption] = useState("");
   const [editScheduledTime, setEditScheduledTime] = useState("");
-  const { theme, setTheme } = useTheme();
   const { user, loading, handleLogout } = useAuthGuard();
   const {
     data,
@@ -90,13 +101,8 @@ export default function DashboardPage() {
   } = useBrandSettings();
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
-
-  const toggleThemeHandler = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
 
   const groupedEntries = useMemo(() => {
     const entries = data?.entries ?? [];
@@ -157,64 +163,27 @@ export default function DashboardPage() {
     return null;
   }
 
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border px-6 py-4 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-heading font-semibold">BrandqoAI Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Your live content calendar, brand snapshot, and next scheduled posts.
-          </p>
-        </div>
+  const renderOverviewSection = () => (
+    <div className="space-y-6">
+      <section className="grid gap-4 md:grid-cols-3">
+        <StatCard
+          title="Brands"
+          value={data?.summary.totalBrands ?? 0}
+          subtitle="Profiles currently available in your workspace."
+        />
+        <StatCard
+          title="Scheduled posts"
+          value={data?.summary.totalScheduledPosts ?? 0}
+          subtitle="All posts currently stored this month in your calendar."
+        />
+        <StatCard
+          title="Upcoming"
+          value={data?.summary.upcomingCount ?? 0}
+          subtitle="Posts still waiting to be published."
+        />
+      </section>
 
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleThemeHandler}
-            className="h-9 w-9"
-          >
-            <Sun className="h-4 w-4 size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            <span className="sr-only">Toggle theme</span>
-          </Button>
-
-          <div className="text-right hidden md:block">
-            <p className="text-sm font-medium text-foreground">{user.name ?? "User"}</p>
-            <p className="text-xs text-muted-foreground">{user.email}</p>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleLogout}
-            className="gap-2 text-foreground btn-destructive hover:bg-destructive/10"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
-        </div>
-      </header>
-
-      <main className="px-6 py-8 max-w-7xl mx-auto space-y-6">
-        <section className="grid gap-4 md:grid-cols-3">
-          <StatCard
-            title="Brands"
-            value={data?.summary.totalBrands ?? 0}
-            subtitle="Profiles currently available in your workspace."
-          />
-          <StatCard
-            title="Scheduled posts"
-            value={data?.summary.totalScheduledPosts ?? 0}
-            subtitle="All posts currently stored this month in your calendar."
-          />
-          <StatCard
-            title="Upcoming"
-            value={data?.summary.upcomingCount ?? 0}
-            subtitle="Posts still waiting to be published."
-          />
-        </section>
-
+      <section className="grid gap-6 xl:grid-cols-[1.4fr,1fr]">
         <BrandSettingsCard
           brand={primaryBrand}
           loading={brandSettingsLoading}
@@ -230,181 +199,229 @@ export default function DashboardPage() {
           }
         />
 
-        <SocialAccountsCard />
-
-        <section className="grid gap-6 lg:grid-cols-3">
-          <section className="lg:col-span-2 card p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <CalendarDays className="h-5 w-5 text-primary" />
+        <section className="space-y-6">
+          <section className="card p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Sparkles className="h-5 w-5 text-accent" />
               <div>
-                <h2 className="text-xl font-heading font-semibold text-foreground">Content calendar</h2>
-                <p className="text-sm text-muted-foreground">
-                  Monthly scheduled posts with edit, approve, and delete controls.
-                </p>
+                <h2 className="text-xl font-heading font-semibold text-foreground">Next up</h2>
+                <p className="text-sm text-muted-foreground">Your next scheduled content at a glance.</p>
               </div>
             </div>
 
-            {dashboardLoading ? (
-              <p className="text-muted-foreground">Loading calendar…</p>
-            ) : error ? (
-              <p className="text-sm text-destructive">{error}</p>
-            ) : Object.keys(groupedEntries).length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border p-6 text-muted-foreground">
-                No scheduled posts yet. Generate a content calendar from WhatsApp or the backend first.
+            <div className="space-y-3">
+              {(data?.upcomingEntries ?? []).slice(0, 4).map((entry) => (
+                <div key={entry.id} className="rounded-xl border border-border p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-foreground line-clamp-2">{entry.title}</p>
+                    <span className={`rounded-full px-2 py-1 text-xs ${platformStyles[entry.platform] ?? "border border-border"}`}>
+                      {entry.platform}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">{formatDate(entry.scheduledTime)}</p>
+                </div>
+              ))}
+
+              {(data?.upcomingEntries?.length ?? 0) === 0 && (
+                <p className="text-sm text-muted-foreground">No upcoming scheduled posts yet.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="card p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Layers3 className="h-5 w-5 text-primary" />
+              <div>
+                <h2 className="text-xl font-heading font-semibold text-foreground">Brand summary</h2>
+                <p className="text-sm text-muted-foreground">Quick snapshot of your primary brand.</p>
+              </div>
+            </div>
+
+            {data?.brands?.[0] ? (
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Brand</p>
+                  <p className="font-medium text-foreground">{data.brands[0].brandName}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Industry</p>
+                  <p className="text-foreground">{data.brands[0].industry ?? "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Target audience</p>
+                  <p className="text-foreground">{data.brands[0].targetAudience ?? "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Tone</p>
+                  <p className="text-foreground">{data.brands[0].toneOfVoice ?? "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Content pillars</p>
+                  <p className="text-foreground">{data.brands[0].contentPillars ?? "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Approval mode</p>
+                  <p className="text-foreground">{data.brands[0].approvalMode ?? "Not set"}</p>
+                </div>
               </div>
             ) : (
-              <div className="space-y-6">
-                {Object.entries(groupedEntries)
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([day, entries]) => (
-                    <div key={day} className="space-y-3">
-                      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                        {formatDayLabel(day)}
-                      </h3>
-                      <div className="space-y-3">
-                        {entries.map((entry) => {
-                          const isPending = pendingEntryId === entry.id;
-                          return (
-                            <div key={entry.id} className="rounded-xl border border-border p-4 bg-background/60">
-                              <div className="flex flex-wrap items-start justify-between gap-3">
-                                <div>
-                                  <p className="font-medium text-foreground">{entry.title}</p>
-                                  <p className="text-sm text-muted-foreground mt-1">{entry.brandName}</p>
-                                </div>
-                                <div className="flex flex-wrap items-center gap-2 text-xs">
-                                  <span className={`rounded-full px-2 py-1 ${platformStyles[entry.platform] ?? "border border-border"}`}>
-                                    {entry.platform}
-                                  </span>
-                                  <span className={`rounded-full px-2 py-1 ${statusStyles[entry.status] ?? "border border-border text-muted-foreground"}`}>
-                                    {entry.status.replaceAll("_", " ")}
-                                  </span>
-                                </div>
-                              </div>
-                              <p className="mt-3 text-sm leading-relaxed text-foreground/90 line-clamp-3">
-                                {entry.caption}
-                              </p>
-                              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                                <Clock3 className="h-3.5 w-3.5" />
-                                <span>{formatDate(entry.scheduledTime)}</span>
-                              </div>
-                              {entry.errorMessage && (
-                                <p className="mt-2 text-xs text-destructive">{entry.errorMessage}</p>
-                              )}
-                              <div className="mt-4 flex flex-wrap gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-2"
-                                  onClick={() => openEditModal(entry)}
-                                  disabled={isPending}
-                                >
-                                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
-                                  Edit
-                                </Button>
-                                {entry.status === "AWAITING_APPROVAL" && (
-                                  <Button
-                                    size="sm"
-                                    className="gap-2"
-                                    onClick={() => void approveEntry(entry.id)}
-                                    disabled={isPending}
-                                  >
-                                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                                    Approve
-                                  </Button>
-                                )}
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-2 text-destructive hover:text-destructive"
-                                  onClick={() => void handleDelete(entry)}
-                                  disabled={isPending}
-                                >
-                                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                  Delete
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-              </div>
+              <p className="text-sm text-muted-foreground">No brand profile found yet.</p>
             )}
           </section>
-
-          <section className="space-y-6">
-            <section className="card p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Sparkles className="h-5 w-5 text-accent" />
-                <div>
-                  <h2 className="text-xl font-heading font-semibold text-foreground">Next up</h2>
-                  <p className="text-sm text-muted-foreground">Your next scheduled content at a glance.</p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {(data?.upcomingEntries ?? []).slice(0, 4).map((entry) => (
-                  <div key={entry.id} className="rounded-xl border border-border p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-foreground line-clamp-2">{entry.title}</p>
-                      <span className={`rounded-full px-2 py-1 text-xs ${platformStyles[entry.platform] ?? "border border-border"}`}>
-                        {entry.platform}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">{formatDate(entry.scheduledTime)}</p>
-                  </div>
-                ))}
-
-                {(data?.upcomingEntries?.length ?? 0) === 0 && (
-                  <p className="text-sm text-muted-foreground">No upcoming scheduled posts yet.</p>
-                )}
-              </div>
-            </section>
-
-            <section className="card p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Layers3 className="h-5 w-5 text-primary" />
-                <div>
-                  <h2 className="text-xl font-heading font-semibold text-foreground">Brand profile</h2>
-                  <p className="text-sm text-muted-foreground">The first configured brand in your workspace.</p>
-                </div>
-              </div>
-
-              {data?.brands?.[0] ? (
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Brand</p>
-                    <p className="font-medium text-foreground">{data.brands[0].brandName}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Industry</p>
-                    <p className="text-foreground">{data.brands[0].industry ?? "Not set"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Target audience</p>
-                    <p className="text-foreground">{data.brands[0].targetAudience ?? "Not set"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Tone</p>
-                    <p className="text-foreground">{data.brands[0].toneOfVoice ?? "Not set"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Content pillars</p>
-                    <p className="text-foreground">{data.brands[0].contentPillars ?? "Not set"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Approval mode</p>
-                    <p className="text-foreground">{data.brands[0].approvalMode ?? "Not set"}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No brand profile found yet.</p>
-              )}
-            </section>
-          </section>
         </section>
-      </main>
+      </section>
+    </div>
+  );
+
+  const renderCalendarSection = () => (
+    <section className="card p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <CalendarDays className="h-5 w-5 text-primary" />
+        <div>
+          <h2 className="text-xl font-heading font-semibold text-foreground">Content calendar</h2>
+          <p className="text-sm text-muted-foreground">
+            Scheduled posts with edit, approve, and delete controls.
+          </p>
+        </div>
+      </div>
+
+      {dashboardLoading ? (
+        <p className="text-muted-foreground">Loading calendar…</p>
+      ) : error ? (
+        <p className="text-sm text-destructive">{error}</p>
+      ) : Object.keys(groupedEntries).length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-6 text-muted-foreground">
+          No scheduled posts yet. Generate a content calendar from WhatsApp or the backend first.
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(groupedEntries)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([day, entries]) => (
+              <div key={day} className="space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  {formatDayLabel(day)}
+                </h3>
+                <div className="space-y-3">
+                  {entries.map((entry) => {
+                    const isPending = pendingEntryId === entry.id;
+                    return (
+                      <div key={entry.id} className="rounded-xl border border-border p-4 bg-background/60">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-foreground">{entry.title}</p>
+                            <p className="text-sm text-muted-foreground mt-1">{entry.brandName}</p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className={`rounded-full px-2 py-1 ${platformStyles[entry.platform] ?? "border border-border"}`}>
+                              {entry.platform}
+                            </span>
+                            <span className={`rounded-full px-2 py-1 ${statusStyles[entry.status] ?? "border border-border text-muted-foreground"}`}>
+                              {entry.status.replaceAll("_", " ")}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm leading-relaxed text-foreground/90 line-clamp-3">
+                          {entry.caption}
+                        </p>
+                        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          <span>{formatDate(entry.scheduledTime)}</span>
+                        </div>
+                        {entry.errorMessage && (
+                          <p className="mt-2 text-xs text-destructive">{entry.errorMessage}</p>
+                        )}
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => openEditModal(entry)}
+                            disabled={isPending}
+                          >
+                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+                            Edit
+                          </Button>
+                          {entry.status === "AWAITING_APPROVAL" && (
+                            <Button
+                              size="sm"
+                              className="gap-2"
+                              onClick={() => void approveEntry(entry.id)}
+                              disabled={isPending}
+                            >
+                              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                              Approve
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 text-destructive hover:text-destructive"
+                            onClick={() => void handleDelete(entry)}
+                            disabled={isPending}
+                          >
+                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+    </section>
+  );
+
+  const renderActiveSection = () => {
+    switch (activeSection) {
+      case "calendar":
+        return renderCalendarSection();
+      case "upcoming":
+        return renderOverviewSection();
+      case "brand-settings":
+        return (
+          <BrandSettingsCard
+            brand={primaryBrand}
+            loading={brandSettingsLoading}
+            saving={brandSettingsSaving}
+            regenerating={brandSettingsRegenerating}
+            error={brandSettingsError}
+            successMessage={brandSettingsSuccess}
+            onSave={(payload) =>
+              primaryBrand ? updateBrandSettings(primaryBrand.id, payload) : Promise.resolve(false)
+            }
+            onRegenerate={() =>
+              primaryBrand ? regenerateCalendar(primaryBrand.id) : Promise.resolve(false)
+            }
+          />
+        );
+      case "social-accounts":
+        return <SocialAccountsCard />;
+      case "brand-summary":
+      case "overview":
+      default:
+        return renderOverviewSection();
+    }
+  };
+
+  return (
+    <>
+      <DashboardShell
+        activeSection={activeSection}
+        onNavigate={setActiveSection}
+        userName={user.name}
+        userEmail={user.email}
+        onLogout={handleLogout}
+        mobileOpen={mobileSidebarOpen}
+        setMobileOpen={setMobileSidebarOpen}
+        headerTitle="Business dashboard"
+        headerDescription="Manage your brand, calendar, social accounts, and publishing preferences from one proper control panel."
+      >
+        {renderActiveSection()}
+      </DashboardShell>
 
       {editingEntry && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -450,6 +467,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
