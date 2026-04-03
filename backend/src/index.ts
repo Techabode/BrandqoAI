@@ -6,6 +6,7 @@ import { authRouter } from "./modules/auth/authRoutes";
 import { conversationRouter } from "./modules/conversation/conversationRoutes";
 import { contentRouter } from "./modules/content/contentRoutes";
 import { brandRouter } from "./modules/brand/brandRoutes";
+import { socialRouter } from "./modules/social/socialRoutes";
 import { handleWhatsAppWebhook, verifyWhatsAppWebhook } from "./http/whatsappWebhook";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./docs/swagger";
@@ -37,6 +38,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/conversation", conversationRouter);
 app.use("/api/content", contentRouter);
 app.use("/api/brand", brandRouter);
+app.use("/api/social", socialRouter);
 
 // swagger documentation route (automatically generated from JSDoc comments)
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
