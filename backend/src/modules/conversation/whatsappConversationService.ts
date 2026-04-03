@@ -317,6 +317,7 @@ const socialConnectionRequiredMessage = (params?: { userId?: string | null; from
 const getStepPrompt = async (state: {
   id: string;
   userId?: string | null;
+  whatsappPhone?: string | null;
   contextJson: Prisma.JsonValue | null;
   currentStep?: string | null;
 }): Promise<string> => {
