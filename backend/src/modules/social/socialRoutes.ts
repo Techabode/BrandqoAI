@@ -94,4 +94,46 @@ socialRouter.post("/accounts", async (req: AuthenticatedRequest, res) => {
   });
 });
 
+socialRouter.delete("/accounts/:id", async (req: AuthenticatedRequest, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  const accountId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  const account = await prisma.socialAccount.findFirst({
+    where: { id: accountId, userId },
+  });
+
+  if (!account) {
+    return res.status(404).json({ message: "Social account not found" });
+  }
+
+  const affectedScheduledPosts = await prisma.scheduledPost.count({
+    where: {
+      platform: account.platform,
+      postTemplate: {
+        brand: {
+          userId,
+        },
+        status: "SCHEDULED",
+      },
+      status: "PENDING",
+    },
+  });
+
+  await prisma.socialAccount.delete({
+    where: { id: account.id },
+  });
+
+  return res.json({
+    message:
+      affectedScheduledPosts > 0
+        ? `Social account disconnected. ${affectedScheduledPosts} pending scheduled post(s) may be affected.`
+        : "Social account disconnected successfully.",
+    affectedScheduledPosts,
+  });
+});
+
 export { socialRouter };
