@@ -11,7 +11,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAuthGuard } from "@/components/hooks/useAuthGuard";
 import { DashboardEntry, useDashboardData } from "@/components/hooks/useDashboardData";
 import { useBrandSettings } from "@/components/hooks/useBrandSettings";
@@ -73,7 +73,6 @@ const StatCard = ({
 );
 
 export default function DashboardPage() {
-  const [mounted, setMounted] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<DashboardSectionKey>("overview");
   const [editingEntry, setEditingEntry] = useState<DashboardEntry | null>(null);
@@ -99,10 +98,6 @@ export default function DashboardPage() {
     updateBrandSettings,
     regenerateCalendar,
   } = useBrandSettings();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const groupedEntries = useMemo(() => {
     const entries = data?.entries ?? [];
@@ -145,8 +140,6 @@ export default function DashboardPage() {
     if (!confirmed) return;
     await deleteEntry(entry.id);
   };
-
-  if (!mounted) return null;
 
   if (loading) {
     return (
