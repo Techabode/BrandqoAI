@@ -3,12 +3,9 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
-
-if (typeof window !== "undefined") {
-  console.log("[BrandqoAI] NEXT_PUBLIC_API_BASE_URL:", process.env.NEXT_PUBLIC_API_BASE_URL);
-  console.log("[BrandqoAI] Resolved API_BASE_URL:", API_BASE_URL);
-}
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  "https://backend-production-62761.up.railway.app";
 
 type Status = "loading" | "error";
 
