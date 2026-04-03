@@ -14,6 +14,18 @@ const brandInputSchema = z.object({
   logoUrl: z.string().trim().url().optional(),
 });
 
+const brandUpdateSchema = z.object({
+  brandName: z.string().trim().min(2).max(80),
+  industry: z.string().trim().min(2).max(100).optional(),
+  targetAudience: z.string().trim().min(6).max(180).optional(),
+  toneOfVoice: z.string().trim().min(4).max(140).optional(),
+  contentPillars: z.string().trim().min(3).max(240).optional(),
+  logoUrl: z.string().trim().url().optional(),
+  postingDaysPerWeek: z.number().int().min(1).max(7).optional(),
+  postsPerDay: z.number().int().min(1).max(3).optional(),
+  approvalMode: z.enum(["MANUAL", "AUTO_POST"]).optional(),
+});
+
 /**
  * @swagger
  * /api/brand:
@@ -177,6 +189,85 @@ router.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
   } catch (error) {
     console.error("Brand creation error:", error);
     res.status(500).json({ error: "Failed to create brand" });
+  }
+});
+
+router.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const parsed = brandUpdateSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Invalid brand update payload",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const existingBrand = await prisma.brandProfile.findFirst({
+      where: { id: id as string, userId: req.user!.id },
+      include: { preferences: true },
+    });
+
+    if (!existingBrand) {
+      return res.status(404).json({ error: "Brand not found" });
+    }
+
+    const {
+      brandName,
+      industry,
+      targetAudience,
+      toneOfVoice,
+      contentPillars,
+      logoUrl,
+      postingDaysPerWeek,
+      postsPerDay,
+      approvalMode,
+    } = parsed.data;
+
+    const brand = await prisma.brandProfile.update({
+      where: { id: existingBrand.id },
+      data: {
+        brandName,
+        industry,
+        targetAudience,
+        toneOfVoice,
+        contentPillars,
+        logoUrl,
+      },
+      include: { preferences: true },
+    });
+
+    const shouldUpdatePreferences =
+      postingDaysPerWeek !== undefined || postsPerDay !== undefined || approvalMode !== undefined;
+
+    const preferences = shouldUpdatePreferences
+      ? await prisma.preferenceProfile.upsert({
+          where: { brandId: existingBrand.id },
+          update: {
+            ...(postingDaysPerWeek !== undefined ? { postingDaysPerWeek } : {}),
+            ...(postsPerDay !== undefined ? { postsPerDay } : {}),
+            ...(approvalMode !== undefined ? { approvalMode } : {}),
+          },
+          create: {
+            brandId: existingBrand.id,
+            postingDaysPerWeek,
+            postsPerDay,
+            approvalMode,
+          },
+        })
+      : brand.preferences;
+
+    res.json({
+      message: "Brand settings updated successfully",
+      brand: {
+        ...brand,
+        preferences,
+      },
+    });
+  } catch (error) {
+    console.error("Brand update error:", error);
+    res.status(500).json({ error: "Failed to update brand settings" });
   }
 });
 

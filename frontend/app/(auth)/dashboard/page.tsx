@@ -6,7 +6,9 @@ import { useTheme } from "next-themes";
 import { useState, useEffect, useMemo } from "react";
 import { useAuthGuard } from "@/components/hooks/useAuthGuard";
 import { DashboardEntry, useDashboardData } from "@/components/hooks/useDashboardData";
-import { type SocialPlatform, useSocialAccounts } from "@/components/hooks/useSocialAccounts";
+import { useBrandSettings } from "@/components/hooks/useBrandSettings";
+import { BrandSettingsCard } from "@/components/BrandSettingsCard";
+import { SocialAccountsCard } from "@/components/SocialAccountsCard";
 
 const platformStyles: Record<string, string> = {
   INSTAGRAM: "platform-instagram",
@@ -65,8 +67,6 @@ export default function DashboardPage() {
   const [editingEntry, setEditingEntry] = useState<DashboardEntry | null>(null);
   const [editCaption, setEditCaption] = useState("");
   const [editScheduledTime, setEditScheduledTime] = useState("");
-  const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform>("INSTAGRAM");
-  const [socialHandle, setSocialHandle] = useState("");
   const { theme, setTheme } = useTheme();
   const { user, loading, handleLogout } = useAuthGuard();
   const {
@@ -79,13 +79,15 @@ export default function DashboardPage() {
     deleteEntry,
   } = useDashboardData();
   const {
-    accounts,
-    loading: socialAccountsLoading,
-    submitting: socialAccountsSubmitting,
-    error: socialAccountsError,
-    successMessage: socialAccountsSuccess,
-    connectAccount,
-  } = useSocialAccounts();
+    primaryBrand,
+    loading: brandSettingsLoading,
+    saving: brandSettingsSaving,
+    regenerating: brandSettingsRegenerating,
+    error: brandSettingsError,
+    successMessage: brandSettingsSuccess,
+    updateBrandSettings,
+    regenerateCalendar,
+  } = useBrandSettings();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -136,21 +138,6 @@ export default function DashboardPage() {
     const confirmed = window.confirm(`Delete this scheduled post for ${entry.brandName}?`);
     if (!confirmed) return;
     await deleteEntry(entry.id);
-  };
-
-  const handleConnectSocialAccount = async () => {
-    if (!socialHandle.trim()) {
-      return;
-    }
-
-    const success = await connectAccount({
-      platform: selectedPlatform,
-      handle: socialHandle.trim(),
-    });
-
-    if (success) {
-      setSocialHandle("");
-    }
   };
 
   if (!mounted) return null;
@@ -228,78 +215,22 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section className="card p-6 border border-dashed border-border space-y-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-foreground">
-                <LinkIcon className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-heading font-semibold">Social account connection</h2>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                WhatsApp onboarding expects at least one connected social account before it can finish your posting frequency and approval setup.
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                This dashboard now lets you connect a social account placeholder for Instagram, Facebook, or X/Twitter so onboarding can continue while the full OAuth flow is being built.
-              </p>
-            </div>
-            <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-              {accounts.length > 0 ? `${accounts.length} account${accounts.length > 1 ? "s" : ""} connected` : "No accounts connected yet"}
-            </div>
-          </div>
+        <BrandSettingsCard
+          brand={primaryBrand}
+          loading={brandSettingsLoading}
+          saving={brandSettingsSaving}
+          regenerating={brandSettingsRegenerating}
+          error={brandSettingsError}
+          successMessage={brandSettingsSuccess}
+          onSave={(payload) =>
+            primaryBrand ? updateBrandSettings(primaryBrand.id, payload) : Promise.resolve(false)
+          }
+          onRegenerate={() =>
+            primaryBrand ? regenerateCalendar(primaryBrand.id) : Promise.resolve(false)
+          }
+        />
 
-          <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)_auto]">
-            <select
-              value={selectedPlatform}
-              onChange={(event) => setSelectedPlatform(event.target.value as SocialPlatform)}
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-            >
-              <option value="INSTAGRAM">Instagram</option>
-              <option value="FACEBOOK">Facebook</option>
-              <option value="TWITTER">X / Twitter</option>
-            </select>
-
-            <input
-              value={socialHandle}
-              onChange={(event) => setSocialHandle(event.target.value)}
-              placeholder="Enter handle e.g. brandqoofficial"
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground"
-            />
-
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleConnectSocialAccount}
-              disabled={socialAccountsSubmitting || !socialHandle.trim()}
-            >
-              {socialAccountsSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
-              Connect social account
-            </Button>
-          </div>
-
-          {socialAccountsError ? <p className="text-sm text-destructive">{socialAccountsError}</p> : null}
-          {socialAccountsSuccess ? <p className="text-sm text-emerald-600">{socialAccountsSuccess}</p> : null}
-
-          {socialAccountsLoading ? (
-            <p className="text-sm text-muted-foreground">Loading connected social accounts…</p>
-          ) : accounts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No social accounts connected yet.</p>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {accounts.map((account) => (
-                <div key={account.id} className="rounded-xl border border-border bg-background/60 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${platformStyles[account.platform] ?? "bg-muted text-foreground"}`}>
-                      {account.platform === "TWITTER" ? "X / Twitter" : account.platform}
-                    </span>
-                    <span className="text-xs text-muted-foreground">Connected</span>
-                  </div>
-                  <p className="mt-3 text-sm font-medium text-foreground">@{account.handle}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Ref: {account.externalPageId}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        <SocialAccountsCard />
 
         <section className="grid gap-6 lg:grid-cols-3">
           <section className="lg:col-span-2 card p-6">
