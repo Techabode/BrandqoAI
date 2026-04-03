@@ -23,6 +23,7 @@ export function SocialAccountsCard() {
     socialHandle,
     setSocialHandle,
     connectAccount,
+    getDisconnectImpact,
     disconnectAccount,
   } = useSocialAccounts();
 
@@ -35,9 +36,19 @@ export function SocialAccountsCard() {
   };
 
   const handleDisconnect = async (accountId: string, handle: string) => {
-    const confirmed = window.confirm(`Disconnect @${handle}? Scheduled posts may be affected.`);
-    if (!confirmed) return;
-    await disconnectAccount(accountId);
+    try {
+      const affectedScheduledPosts = await getDisconnectImpact(accountId);
+      const confirmed = window.confirm(
+        affectedScheduledPosts > 0
+          ? `Disconnect @${handle}? ${affectedScheduledPosts} pending scheduled post(s) may be affected.`
+          : `Disconnect @${handle}?`,
+      );
+      if (!confirmed) return;
+      await disconnectAccount(accountId);
+    } catch (err) {
+      console.error(err);
+      window.alert(err instanceof Error ? err.message : "Failed to inspect disconnect impact.");
+    }
   };
 
   return (

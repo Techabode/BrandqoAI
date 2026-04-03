@@ -22,6 +22,7 @@ interface BrandSettingsCardProps {
     postingDaysPerWeek?: number;
     postsPerDay?: number;
     approvalMode?: "MANUAL" | "AUTO_POST";
+    pendingApprovalAction?: "HOLD" | "AUTO_APPROVE";
   }) => Promise<boolean>;
   onRegenerate: () => Promise<boolean>;
 }
@@ -75,6 +76,15 @@ export function BrandSettingsCard({
   }
 
   const handleSubmit = async () => {
+    let pendingApprovalAction: "HOLD" | "AUTO_APPROVE" | undefined;
+
+    if (brand.approvalMode === "MANUAL" && form.approvalMode === "AUTO_POST") {
+      const autoApprove = window.confirm(
+        "You are switching from manual approval to auto-post. Click OK to continue pending posts automatically, or Cancel to keep current pending posts waiting for manual review.",
+      );
+      pendingApprovalAction = autoApprove ? "AUTO_APPROVE" : "HOLD";
+    }
+
     await onSave({
       brandName: form.brandName.trim(),
       industry: form.industry.trim() || undefined,
@@ -85,6 +95,7 @@ export function BrandSettingsCard({
       postingDaysPerWeek: Number(form.postingDaysPerWeek),
       postsPerDay: Number(form.postsPerDay),
       approvalMode: form.approvalMode,
+      pendingApprovalAction,
     });
   };
 

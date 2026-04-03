@@ -97,6 +97,7 @@ export const useBrandSettings = () => {
         postingDaysPerWeek?: number;
         postsPerDay?: number;
         approvalMode?: "MANUAL" | "AUTO_POST";
+        pendingApprovalAction?: "HOLD" | "AUTO_APPROVE";
       },
     ) => {
       try {

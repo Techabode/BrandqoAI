@@ -91,6 +91,23 @@ export const useSocialAccounts = () => {
     [fetchAccounts],
   );
 
+  const getDisconnectImpact = useCallback(
+    async (accountId: string) => {
+      const response = await fetch(`${API_BASE_URL}/api/social/accounts/${accountId}/impact`, {
+        credentials: "include",
+      });
+
+      const body = (await response.json().catch(() => null)) as { affectedScheduledPosts?: number; message?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(body?.message ?? "Failed to inspect social account impact");
+      }
+
+      return body?.affectedScheduledPosts ?? 0;
+    },
+    [],
+  );
+
   const disconnectAccount = useCallback(
     async (accountId: string) => {
       try {
@@ -133,6 +150,7 @@ export const useSocialAccounts = () => {
     socialHandle,
     setSocialHandle,
     connectAccount,
+    getDisconnectImpact,
     disconnectAccount,
     refetch: fetchAccounts,
   };

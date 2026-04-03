@@ -24,6 +24,7 @@ const brandUpdateSchema = z.object({
   postingDaysPerWeek: z.number().int().min(1).max(7).optional(),
   postsPerDay: z.number().int().min(1).max(3).optional(),
   approvalMode: z.enum(["MANUAL", "AUTO_POST"]).optional(),
+  pendingApprovalAction: z.enum(["HOLD", "AUTO_APPROVE"]).optional(),
 });
 
 /**
@@ -223,6 +224,7 @@ router.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
       postingDaysPerWeek,
       postsPerDay,
       approvalMode,
+      pendingApprovalAction,
     } = parsed.data;
 
     const brand = await prisma.brandProfile.update({
@@ -258,12 +260,33 @@ router.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
         })
       : brand.preferences;
 
+    let autoApprovedPendingPosts = 0;
+
+    if (approvalMode === "AUTO_POST" && pendingApprovalAction === "AUTO_APPROVE") {
+      const result = await prisma.scheduledPost.updateMany({
+        where: {
+          status: "PENDING",
+          postTemplate: {
+            brandId: existingBrand.id,
+          },
+        },
+        data: {
+          status: "PENDING",
+        },
+      });
+      autoApprovedPendingPosts = result.count;
+    }
+
     res.json({
-      message: "Brand settings updated successfully",
+      message:
+        autoApprovedPendingPosts > 0
+          ? `Brand settings updated successfully. ${autoApprovedPendingPosts} pending post(s) will now continue under auto-post mode.`
+          : "Brand settings updated successfully",
       brand: {
         ...brand,
         preferences,
       },
+      autoApprovedPendingPosts,
     });
   } catch (error) {
     console.error("Brand update error:", error);
