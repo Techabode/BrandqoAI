@@ -317,6 +317,7 @@ const socialConnectionRequiredMessage = (params?: { userId?: string | null; from
 const getStepPrompt = async (state: {
   id: string;
   userId?: string | null;
+  whatsappPhone?: string | null;
   contextJson: Prisma.JsonValue | null;
   currentStep?: string | null;
 }): Promise<string> => {
@@ -343,7 +344,10 @@ const getStepPrompt = async (state: {
     case "ASK_APPROVAL_MODE":
       return `${approvalModeExplanation()}\n\n${promptForApprovalMode()}`;
     case "WAIT_FOR_SOCIAL_CONNECTION":
-      return socialConnectionRequiredMessage({ userId: state.userId });
+      return socialConnectionRequiredMessage({
+        userId: state.userId,
+        fromPhone: state.whatsappPhone ?? undefined,
+      });
     case "WELCOME":
     case "READY":
     default:
