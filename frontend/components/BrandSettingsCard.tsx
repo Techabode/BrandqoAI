@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, Settings2 } from "lucide-react";
 import { type BrandSettings } from "@/components/hooks/useBrandSettings";
@@ -37,36 +37,6 @@ export function BrandSettingsCard({
   onSave,
   onRegenerate,
 }: BrandSettingsCardProps) {
-  const [form, setForm] = useState({
-    brandName: "",
-    industry: "",
-    targetAudience: "",
-    toneOfVoice: "",
-    contentPillars: "",
-    logoUrl: "",
-    postingDaysPerWeek: "1",
-    postsPerDay: "1",
-    approvalMode: "MANUAL" as "MANUAL" | "AUTO_POST",
-  });
-
-  useEffect(() => {
-    if (!brand) {
-      return;
-    }
-
-    setForm({
-      brandName: brand.brandName,
-      industry: brand.industry ?? "",
-      targetAudience: brand.targetAudience ?? "",
-      toneOfVoice: brand.toneOfVoice ?? "",
-      contentPillars: brand.contentPillars ?? "",
-      logoUrl: brand.logoUrl ?? "",
-      postingDaysPerWeek: String(brand.postingDaysPerWeek ?? 1),
-      postsPerDay: String(brand.postsPerDay ?? 1),
-      approvalMode: brand.approvalMode ?? "MANUAL",
-    });
-  }, [brand]);
-
   if (loading) {
     return <section className="card p-6">Loading brand settings…</section>;
   }
@@ -74,6 +44,54 @@ export function BrandSettingsCard({
   if (!brand) {
     return <section className="card p-6">No brand profile found yet.</section>;
   }
+
+  const brandKey = [
+    brand.id,
+    brand.brandName,
+    brand.industry ?? "",
+    brand.targetAudience ?? "",
+    brand.toneOfVoice ?? "",
+    brand.contentPillars ?? "",
+    brand.logoUrl ?? "",
+    String(brand.postingDaysPerWeek ?? 1),
+    String(brand.postsPerDay ?? 1),
+    brand.approvalMode ?? "MANUAL",
+  ].join("|");
+
+  return (
+    <BrandSettingsCardInner
+      key={brandKey}
+      brand={brand}
+      saving={saving}
+      regenerating={regenerating}
+      error={error}
+      successMessage={successMessage}
+      onSave={onSave}
+      onRegenerate={onRegenerate}
+    />
+  );
+}
+
+function BrandSettingsCardInner({
+  brand,
+  saving,
+  regenerating,
+  error,
+  successMessage,
+  onSave,
+  onRegenerate,
+}: Omit<BrandSettingsCardProps, "loading" | "brand"> & { brand: BrandSettings }) {
+  const [form, setForm] = useState({
+    brandName: brand.brandName,
+    industry: brand.industry ?? "",
+    targetAudience: brand.targetAudience ?? "",
+    toneOfVoice: brand.toneOfVoice ?? "",
+    contentPillars: brand.contentPillars ?? "",
+    logoUrl: brand.logoUrl ?? "",
+    postingDaysPerWeek: String(brand.postingDaysPerWeek ?? 1),
+    postsPerDay: String(brand.postsPerDay ?? 1),
+    approvalMode: (brand.approvalMode ?? "MANUAL") as "MANUAL" | "AUTO_POST",
+  });
 
   const handleSubmit = async () => {
     let pendingApprovalAction: "HOLD" | "AUTO_APPROVE" | undefined;
