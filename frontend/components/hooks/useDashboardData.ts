@@ -13,7 +13,8 @@ export interface DashboardBrand {
   targetAudience: string | null;
   toneOfVoice: string | null;
   contentPillars: string | null;
-  postingFrequency: string | null;
+  postingDaysPerWeek: number | null;
+  postsPerDay: number | null;
   approvalMode: "MANUAL" | "AUTO_POST" | null;
 }
 
@@ -32,7 +33,8 @@ export interface DashboardEntry {
   approvalMode: "MANUAL" | "AUTO_POST" | null;
   scheduledTime: string;
   errorMessage: string | null;
-  postingFrequency: string | null;
+  postingDaysPerWeek: number | null;
+  postsPerDay: number | null;
 }
 
 interface DashboardResponse {
