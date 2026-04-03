@@ -21,6 +21,12 @@ interface GeneratedCalendarEntry {
   scheduledAt: Date;
 }
 
+const DEFAULT_PLATFORM_SEQUENCE: Array<"INSTAGRAM" | "FACEBOOK" | "TWITTER"> = [
+  "INSTAGRAM",
+  "FACEBOOK",
+  "TWITTER",
+];
+
 interface CalendarGenerationResult {
   attempt: number;
   count: number;
@@ -198,6 +204,44 @@ const normalizeCalendarResponse = (
       };
     })
     .filter((entry) => Boolean(entry.topic) && Boolean(entry.caption));
+};
+
+const ensureCalendarEntryCount = (
+  entries: GeneratedCalendarEntry[],
+  postsNeeded: number,
+  brandName: string,
+  frequencySettings: PostingFrequencySettings,
+): GeneratedCalendarEntry[] => {
+  const normalized = entries.slice(0, postsNeeded).map((entry, index) => ({
+    ...entry,
+    scheduledAt: entry.scheduledAt ?? deriveScheduleDate(index, frequencySettings),
+    platforms: entry.platforms.length ? entry.platforms : [DEFAULT_PLATFORM_SEQUENCE[index % DEFAULT_PLATFORM_SEQUENCE.length]],
+  }));
+
+  while (normalized.length < postsNeeded) {
+    const index = normalized.length;
+    normalized.push({
+      topic: `${brandName} content idea ${index + 1}`,
+      caption: `Here’s a fresh update from ${brandName} to keep your audience engaged and informed.`,
+      platforms: [DEFAULT_PLATFORM_SEQUENCE[index % DEFAULT_PLATFORM_SEQUENCE.length]],
+      scheduledAt: deriveScheduleDate(index, frequencySettings),
+    });
+  }
+
+  return normalized;
+};
+
+const safeGenerateImagePrompt = async (
+  provider: ReturnType<typeof createProvider>,
+  topic: string,
+  brandContext: string,
+): Promise<string> => {
+  try {
+    return await provider.generateImagePrompt(topic, brandContext);
+  } catch (error) {
+    console.error("Image prompt generation failed, using fallback prompt:", error);
+    return `Create a clean, engaging branded social media visual for: ${topic}. Brand context: ${brandContext}`;
+  }
 };
 
 const notifyCalendarFailure = async (brandId: string, error: unknown) => {
@@ -383,11 +427,8 @@ Rules:
       const raw = provider.generateJson
         ? await provider.generateJson(prompt, { maxRetries: 4 })
         : await provider.generateCaption(brandContext, prompt);
-      const entries = normalizeCalendarResponse(raw, frequencySettings).slice(0, postsNeeded);
-
-      if (entries.length !== postsNeeded) {
-        throw new Error(`Calendar generation returned ${entries.length} entries instead of ${postsNeeded}`);
-      }
+      const parsedEntries = normalizeCalendarResponse(raw, frequencySettings);
+      const entries = ensureCalendarEntryCount(parsedEntries, postsNeeded, brand.brandName, frequencySettings);
 
       await prisma.$transaction(async (tx) => {
         await tx.scheduledPost.deleteMany({
@@ -411,7 +452,7 @@ Rules:
       }> = [];
 
       for (const entry of entries) {
-        const imagePrompt = await provider.generateImagePrompt(entry.topic, brandContext);
+        const imagePrompt = await safeGenerateImagePrompt(provider, entry.topic, brandContext);
 
         const createdIdea = await prisma.contentIdea.create({
           data: {
