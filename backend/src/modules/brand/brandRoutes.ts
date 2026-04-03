@@ -227,6 +227,10 @@ router.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
       pendingApprovalAction,
     } = parsed.data;
 
+    const brandIdentityChanged =
+      existingBrand.brandName !== brandName ||
+      existingBrand.logoUrl !== logoUrl;
+
     const brand = await prisma.brandProfile.update({
       where: { id: existingBrand.id },
       data: {
@@ -277,16 +281,29 @@ router.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
       autoApprovedPendingPosts = result.count;
     }
 
+    const pendingTemplatesNeedingRefresh = brandIdentityChanged
+      ? await prisma.postTemplate.count({
+          where: {
+            brandId: existingBrand.id,
+            status: "SCHEDULED",
+          },
+        })
+      : 0;
+
     res.json({
       message:
         autoApprovedPendingPosts > 0
           ? `Brand settings updated successfully. ${autoApprovedPendingPosts} pending post(s) will now continue under auto-post mode.`
-          : "Brand settings updated successfully",
+          : brandIdentityChanged && pendingTemplatesNeedingRefresh > 0
+            ? `Brand settings updated successfully. ${pendingTemplatesNeedingRefresh} scheduled post template(s) may need flyer regeneration to reflect the new brand identity.`
+            : "Brand settings updated successfully",
       brand: {
         ...brand,
         preferences,
       },
       autoApprovedPendingPosts,
+      pendingTemplatesNeedingRefresh,
+      brandIdentityChanged,
     });
   } catch (error) {
     console.error("Brand update error:", error);

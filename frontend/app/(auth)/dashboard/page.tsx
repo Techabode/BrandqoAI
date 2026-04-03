@@ -375,12 +375,97 @@ export default function DashboardPage() {
     </section>
   );
 
+  const renderUpcomingSection = () => (
+    <section className="card p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <Sparkles className="h-5 w-5 text-accent" />
+        <div>
+          <h2 className="text-xl font-heading font-semibold text-foreground">Upcoming posts</h2>
+          <p className="text-sm text-muted-foreground">Your next scheduled content queue.</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {(data?.upcomingEntries ?? []).map((entry) => (
+          <div key={entry.id} className="rounded-xl border border-border p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">{entry.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{entry.brandName}</p>
+              </div>
+              <span className={`rounded-full px-2 py-1 text-xs ${platformStyles[entry.platform] ?? "border border-border"}`}>
+                {entry.platform}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-foreground/80 line-clamp-2">{entry.caption}</p>
+            <p className="mt-2 text-xs text-muted-foreground">{formatDate(entry.scheduledTime)}</p>
+          </div>
+        ))}
+
+        {(data?.upcomingEntries?.length ?? 0) === 0 && (
+          <p className="text-sm text-muted-foreground">No upcoming scheduled posts yet.</p>
+        )}
+      </div>
+    </section>
+  );
+
+  const renderBrandSummarySection = () => (
+    <section className="card p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <Layers3 className="h-5 w-5 text-primary" />
+        <div>
+          <h2 className="text-xl font-heading font-semibold text-foreground">Brand summary</h2>
+          <p className="text-sm text-muted-foreground">Current snapshot of your primary brand and posting setup.</p>
+        </div>
+      </div>
+
+      {data?.brands?.[0] ? (
+        <div className="grid gap-4 md:grid-cols-2 text-sm">
+          <div>
+            <p className="text-muted-foreground">Brand</p>
+            <p className="font-medium text-foreground">{data.brands[0].brandName}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Industry</p>
+            <p className="text-foreground">{data.brands[0].industry ?? "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Target audience</p>
+            <p className="text-foreground">{data.brands[0].targetAudience ?? "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Tone</p>
+            <p className="text-foreground">{data.brands[0].toneOfVoice ?? "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Content pillars</p>
+            <p className="text-foreground">{data.brands[0].contentPillars ?? "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Approval mode</p>
+            <p className="text-foreground">{data.brands[0].approvalMode ?? "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Posting days / week</p>
+            <p className="text-foreground">{data.brands[0].postingDaysPerWeek ?? "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Posts / day</p>
+            <p className="text-foreground">{data.brands[0].postsPerDay ?? "Not set"}</p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">No brand profile found yet.</p>
+      )}
+    </section>
+  );
+
   const renderActiveSection = () => {
     switch (activeSection) {
       case "calendar":
         return renderCalendarSection();
       case "upcoming":
-        return renderOverviewSection();
+        return renderUpcomingSection();
       case "brand-settings":
         return (
           <BrandSettingsCard
@@ -401,6 +486,7 @@ export default function DashboardPage() {
       case "social-accounts":
         return <SocialAccountsCard />;
       case "brand-summary":
+        return renderBrandSummarySection();
       case "overview":
       default:
         return renderOverviewSection();

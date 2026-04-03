@@ -110,13 +110,23 @@ export const useBrandSettings = () => {
           body: JSON.stringify(payload),
         });
 
-        const body = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+          message?: string;
+          pendingTemplatesNeedingRefresh?: number;
+          brandIdentityChanged?: boolean;
+        } | null;
 
         if (!response.ok) {
           throw new Error(body?.error ?? body?.message ?? "Failed to update brand settings");
         }
 
-        setSuccessMessage("Brand settings updated successfully.");
+        setSuccessMessage(
+          body?.message ??
+            (body?.brandIdentityChanged && (body?.pendingTemplatesNeedingRefresh ?? 0) > 0
+              ? `${body.pendingTemplatesNeedingRefresh} scheduled post template(s) may need flyer regeneration to reflect your latest brand identity.`
+              : "Brand settings updated successfully."),
+        );
         setError(null);
         await fetchBrands();
         return true;
