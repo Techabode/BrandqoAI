@@ -38,5 +38,9 @@ export const env = {
   anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6",
   replicateApiKey: process.env.REPLICATE_API_KEY,
   togetherApiKey: getApiKey("TOGETHER_API_KEY", aiProvider, "mistral") as string,
+  metaAppId: process.env.META_APP_ID,
+  metaAppSecret: process.env.META_APP_SECRET,
+  metaRedirectUri: process.env.META_REDIRECT_URI,
+  metaGraphApiVersion: process.env.META_GRAPH_API_VERSION ?? "v22.0",
+  socialOAuthStateSecret: process.env.SOCIAL_OAUTH_STATE_SECRET ?? process.env.JWT_SECRET,
 };
-
