@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Link as LinkIcon, Loader2, Trash2 } from "lucide-react";
-import { type SocialPlatform, useSocialAccounts } from "@/components/hooks/useSocialAccounts";
+import { AlertTriangle, CheckCircle2, Facebook, Instagram, Link as LinkIcon, Loader2, Trash2 } from "lucide-react";
+import { useSocialAccounts } from "@/components/hooks/useSocialAccounts";
 
 const platformStyles: Record<string, string> = {
   INSTAGRAM: "platform-instagram",
@@ -16,24 +16,19 @@ export function SocialAccountsCard() {
     loading,
     submitting,
     disconnecting,
+    selectionSubmitting,
     error,
     successMessage,
-    selectedPlatform,
-    setSelectedPlatform,
-    socialHandle,
-    setSocialHandle,
-    connectAccount,
+    startOAuthConnect,
     getDisconnectImpact,
     disconnectAccount,
+    metaSelectionSession,
+    metaSelectionAssets,
+    selectedMetaAssetIds,
+    toggleMetaAssetSelection,
+    confirmMetaAssetSelection,
+    clearMetaSelection,
   } = useSocialAccounts();
-
-  const handleConnect = async () => {
-    if (!socialHandle.trim()) return;
-    const success = await connectAccount({ platform: selectedPlatform, handle: socialHandle.trim() });
-    if (success) {
-      setSocialHandle("");
-    }
-  };
 
   const handleDisconnect = async (accountId: string, handle: string) => {
     try {
@@ -60,7 +55,7 @@ export function SocialAccountsCard() {
             <h2 className="text-lg font-heading font-semibold">Social account connection</h2>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            WhatsApp onboarding expects at least one connected social account before it can finish your posting frequency and approval setup.
+            Connect your real Meta accounts here. At least one connected social account is required before BrandqoAI can finish the proper posting flow.
           </p>
         </div>
         <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
@@ -68,29 +63,68 @@ export function SocialAccountsCard() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)_auto]">
-        <select
-          value={selectedPlatform}
-          onChange={(event) => setSelectedPlatform(event.target.value as SocialPlatform)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-        >
-          <option value="INSTAGRAM">Instagram</option>
-          <option value="FACEBOOK">Facebook</option>
-          <option value="TWITTER">X / Twitter</option>
-        </select>
-
-        <input
-          value={socialHandle}
-          onChange={(event) => setSocialHandle(event.target.value)}
-          placeholder="Enter handle e.g. brandqoofficial"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground"
-        />
-
-        <Button variant="outline" className="gap-2" onClick={handleConnect} disabled={submitting || !socialHandle.trim()}>
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
-          Connect social account
+      <div className="grid gap-3 md:grid-cols-2">
+        <Button variant="outline" className="justify-start gap-2" onClick={() => startOAuthConnect("FACEBOOK")} disabled={submitting}>
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Facebook className="h-4 w-4" />}
+          Connect Facebook Page via Meta OAuth
+        </Button>
+        <Button variant="outline" className="justify-start gap-2" onClick={() => startOAuthConnect("INSTAGRAM")} disabled={submitting}>
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Instagram className="h-4 w-4" />}
+          Connect Instagram Business via Meta OAuth
         </Button>
       </div>
+
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-800">
+        <div className="flex items-start gap-2">
+          <AlertTriangle className="mt-0.5 h-4 w-4" />
+          <p>
+            This now uses a browser handoff through Meta. If an account is already claimed by another BrandqoAI profile, the connection is blocked instead of quietly stomping over it. Miracles do happen.
+          </p>
+        </div>
+      </div>
+
+      {metaSelectionSession ? (
+        <div className="space-y-4 rounded-2xl border border-border bg-background/60 p-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Choose which Meta account(s) to link</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              We found more than one eligible account. Pick the ones BrandqoAI should connect.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            {metaSelectionAssets.map((asset) => {
+              const checked = selectedMetaAssetIds.includes(asset.id);
+              return (
+                <button
+                  key={asset.id}
+                  type="button"
+                  onClick={() => toggleMetaAssetSelection(asset.id)}
+                  className={`rounded-xl border p-4 text-left transition ${checked ? "border-primary bg-primary/5" : "border-border bg-background"}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${platformStyles[asset.platform] ?? "bg-muted text-foreground"}`}>
+                      {asset.platform === "FACEBOOK" ? "Facebook" : "Instagram"}
+                    </span>
+                    {checked ? <CheckCircle2 className="h-4 w-4 text-primary" /> : null}
+                  </div>
+                  <p className="mt-3 text-sm font-medium text-foreground">{asset.accountName}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">@{asset.handle}</p>
+                  {asset.pageName ? <p className="mt-1 text-xs text-muted-foreground">Page: {asset.pageName}</p> : null}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => void confirmMetaAssetSelection()} disabled={selectionSubmitting || selectedMetaAssetIds.length === 0}>
+              {selectionSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Connect selected account{selectedMetaAssetIds.length === 1 ? "" : "s"}
+            </Button>
+            <Button variant="outline" onClick={clearMetaSelection} disabled={selectionSubmitting}>Cancel</Button>
+          </div>
+        </div>
+      ) : null}
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {successMessage ? <p className="text-sm text-emerald-600">{successMessage}</p> : null}
@@ -111,8 +145,10 @@ export function SocialAccountsCard() {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="mt-3 text-sm font-medium text-foreground">@{account.handle}</p>
+              <p className="mt-3 text-sm font-medium text-foreground">{account.accountName ?? `@${account.handle}`}</p>
+              <p className="mt-1 text-xs text-muted-foreground">@{account.handle}</p>
               <p className="mt-1 text-xs text-muted-foreground">Ref: {account.externalPageId}</p>
+              {account.pageName ? <p className="mt-1 text-xs text-muted-foreground">Page: {account.pageName}</p> : null}
             </div>
           ))}
         </div>

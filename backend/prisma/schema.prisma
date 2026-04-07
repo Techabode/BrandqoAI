@@ -78,24 +78,32 @@ model SocialAccount {
   platform               SocialPlatform
   externalPageId         String
   handle                 String
+  accountName            String?
+  provider               String?
+  pageId                 String?
+  pageName               String?
+  instagramBusinessId    String?
+  metadataJson           Json?
   accessTokenEncrypted   String
   refreshTokenEncrypted  String?
   tokenExpiresAt         DateTime?
   scopes                 String?
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
+
+  @@unique([platform, externalPageId])
 }
 
 model ContentIdea {
-  id           String       @id @default(cuid())
-  brand        BrandProfile @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  brandId      String
-  title        String
-  description  String?
-  status       IdeaStatus   @default(IDEA)
-  generatedBy  GeneratedBy  @default(AI)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id            String        @id @default(cuid())
+  brand         BrandProfile  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId       String
+  title         String
+  description   String?
+  status        IdeaStatus    @default(IDEA)
+  generatedBy   GeneratedBy   @default(AI)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   postTemplates PostTemplate[]
 }
 
@@ -163,4 +171,3 @@ model ConversationState {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
-
