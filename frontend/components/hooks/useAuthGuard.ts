@@ -13,7 +13,7 @@ export const useAuthGuard = () => {
 
     if (loading) return; // Wait for auth check
 
-     const protectedRoutes = ['/dashboard']
+     const protectedRoutes = ['/dashboard', '/calendar', '/upcoming', '/brand-settings', '/social-accounts', '/brand-summary']
       
     // LOGGED IN: Force to dashboard ONLY
     if (user && !protectedRoutes.includes(pathname)) {

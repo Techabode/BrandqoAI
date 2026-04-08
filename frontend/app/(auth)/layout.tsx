@@ -1,8 +1,8 @@
+// app/(auth)/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { Footer } from "../_components/Footer";
+import { AuthLayoutClient } from "../_components/AuthLayoutClient";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "BrandqoAI - Dashboard",
-  description: "AI-powered brand intelligence platform Landing Page",
+  description: "AI-powered brand intelligence platform",
 };
 
 export default function AuthLayout({
@@ -25,9 +25,9 @@ export default function AuthLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <>
-      {children}
+    <div className={`${geistSans.variable} ${geistMono.variable}`}>
+      <AuthLayoutClient>{children}</AuthLayoutClient>
       <Footer />
-    </>
+    </div>
   );
 }

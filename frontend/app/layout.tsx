@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+// @ts-expect-error: side-effect CSS import without type declarations
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
-import { LandingNav } from "./_components/LandingNav";
-import { Footer } from "./_components/Footer";
 import LayoutWrapper from "./layout-wrapper";
 
 const geistSans = Geist({

@@ -1,5 +1,5 @@
 "use client";
-
+// components/hooks/useFetchMe.ts
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation"; // React 19 / Next 15+ standard
 
