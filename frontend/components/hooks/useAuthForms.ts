@@ -77,6 +77,16 @@ export const useAuthForm = () => {
           setFormData((prev) => ({ ...prev, password: "" })); // Clear sensitive data
         }
       } else {
+        const meResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!meResponse.ok) {
+          throw new Error("Login completed, but your session could not be verified. Please try again.");
+        }
+
         router.push("/dashboard");
       }
     } catch (err) {
