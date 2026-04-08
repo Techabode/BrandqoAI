@@ -14,7 +14,7 @@ export default function LayoutWrapper({
   // Define routes where you want to HIDE the Nav and Footer
 //   const hideLayout =
         // pathname.startsWith("/login") || pathname.startsWith("/dashboard");
-    const hideLayout = ["/login", "/dashboard"].includes(pathname)
+    const hideLayout = ["/login", "/dashboard", '/calendar', '/upcoming', '/brand-settings', '/social-accounts', '/brand-summary'].includes(pathname)
 
   return (
     <>

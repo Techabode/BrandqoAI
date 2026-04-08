@@ -1,5 +1,5 @@
 "use client";
-
+// app/_components/Footer.tsx
 import { Zap } from "lucide-react";
 import Link from "next/link";
 
