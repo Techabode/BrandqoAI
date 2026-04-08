@@ -65,6 +65,9 @@ export const useSocialAccounts = () => {
 
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { message?: string } | null;
+        if (response.status === 401) {
+          throw new Error("Your session expired. Please log in again before connecting a social account.");
+        }
         throw new Error(body?.message ?? "Failed to load social accounts");
       }
 
@@ -89,6 +92,9 @@ export const useSocialAccounts = () => {
         | null;
 
       if (!response.ok || !body?.assets) {
+        if (response.status === 401) {
+          throw new Error("Your session expired. Please log in again before choosing a Meta account.");
+        }
         throw new Error(body?.message ?? "Failed to load Meta account options");
       }
 
@@ -220,6 +226,9 @@ export const useSocialAccounts = () => {
       const body = (await response.json().catch(() => null)) as { message?: string } | null;
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Your session expired. Please log in again before connecting Meta accounts.");
+        }
         throw new Error(body?.message ?? "Failed to connect selected Meta accounts");
       }
 
