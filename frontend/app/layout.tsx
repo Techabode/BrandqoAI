@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-// @ts-expect-error: side-effect CSS import without type declarations
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import LayoutWrapper from "./layout-wrapper";
@@ -20,13 +19,11 @@ export const metadata: Metadata = {
   description: "AI-powered brand intelligence platform",
 };
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -38,9 +35,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <LayoutWrapper>
-            {children}
-          </LayoutWrapper>
+          <LayoutWrapper>{children}</LayoutWrapper>
         </ThemeProvider>
       </body>
     </html>
