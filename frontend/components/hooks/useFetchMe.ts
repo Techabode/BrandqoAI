@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation"; // React 19 / Next 15+ standard
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://backend-production-62761.up.railway.app";
+const API_BASE_URL = "/api";
 
 interface User {
   id: string;
