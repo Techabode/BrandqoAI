@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://backend-production-62761.up.railway.app";
+const API_BASE_URL = "/api";
 
 export type SocialPlatform = "INSTAGRAM" | "FACEBOOK" | "TWITTER";
 
