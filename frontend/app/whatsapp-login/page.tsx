@@ -3,9 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://backend-production-62761.up.railway.app";
+const API_BASE_URL = "/api";
 
 type Status = "loading" | "error";
 
