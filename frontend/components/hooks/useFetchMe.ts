@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation"; // React 19 / Next 15+ standard
 
 const API_BASE_URL = "/api";
-
 interface User {
   id: string;
   name: string | null;
@@ -19,7 +18,7 @@ export const useFetchMe = () => {
   useEffect(() => {
     const fetchMe = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
           method: "GET",
           // The browser automatically sends the secure cookie with this flag
           credentials: "include",
@@ -45,7 +44,7 @@ export const useFetchMe = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });

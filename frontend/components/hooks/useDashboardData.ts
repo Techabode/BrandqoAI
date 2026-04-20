@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 
 const API_BASE_URL = "/api";
-
 export interface DashboardBrand {
   id: string;
   brandName: string;
@@ -69,7 +68,7 @@ export const useDashboardData = () => {
   const fetchDashboard = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/content/calendar?month=${getCurrentMonth()}`, {
+      const response = await fetch(`${API_BASE_URL}/content/calendar?month=${getCurrentMonth()}`, {
         method: "GET",
         credentials: "include",
       });
@@ -95,7 +94,7 @@ export const useDashboardData = () => {
   const updateEntry = useCallback(async (entryId: string, payload: UpdateDashboardEntryInput) => {
     try {
       setPendingEntryId(entryId);
-      const response = await fetch(`${API_BASE_URL}/api/content/calendar/${entryId}`, {
+      const response = await fetch(`${API_BASE_URL}/content/calendar/${entryId}`, {
         method: "PATCH",
         credentials: "include",
         headers: {
@@ -122,7 +121,7 @@ export const useDashboardData = () => {
   const approveEntry = useCallback(async (entryId: string) => {
     try {
       setPendingEntryId(entryId);
-      const response = await fetch(`${API_BASE_URL}/api/content/calendar/${entryId}/approve`, {
+      const response = await fetch(`${API_BASE_URL}/content/calendar/${entryId}/approve`, {
         method: "POST",
         credentials: "include",
       });
@@ -145,7 +144,7 @@ export const useDashboardData = () => {
   const deleteEntry = useCallback(async (entryId: string) => {
     try {
       setPendingEntryId(entryId);
-      const response = await fetch(`${API_BASE_URL}/api/content/calendar/${entryId}`, {
+      const response = await fetch(`${API_BASE_URL}/content/calendar/${entryId}`, {
         method: "DELETE",
         credentials: "include",
       });
