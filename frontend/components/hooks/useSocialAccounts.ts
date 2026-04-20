@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const API_BASE_URL = "/api";
-
 export type SocialPlatform = "INSTAGRAM" | "FACEBOOK" | "TWITTER";
 
 export interface SocialAccount {
@@ -57,7 +56,7 @@ export const useSocialAccounts = () => {
   const fetchAccounts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/social/accounts`, {
+      const response = await fetch(`${API_BASE_URL}/social/accounts`, {
         credentials: "include",
       });
 
@@ -81,7 +80,7 @@ export const useSocialAccounts = () => {
 
   const loadMetaSelectionSession = useCallback(async (session: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/social/meta/assets?session=${encodeURIComponent(session)}`, {
+      const response = await fetch(`${API_BASE_URL}/social/meta/assets?session=${encodeURIComponent(session)}`, {
         credentials: "include",
       });
 
@@ -145,7 +144,7 @@ export const useSocialAccounts = () => {
     setSubmitting(true);
     setSuccessMessage(null);
     setError(null);
-    const url = new URL(`${API_BASE_URL}/api/social/meta/connect`);
+    const url = new URL(`${window.location.origin}/social/meta/connect`);
     url.searchParams.set("platform", platform);
     url.searchParams.set("origin", "dashboard");
     url.searchParams.set("redirect", "/dashboard");
@@ -153,7 +152,7 @@ export const useSocialAccounts = () => {
   }, []);
 
   const getDisconnectImpact = useCallback(async (accountId: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/social/accounts/${accountId}/impact`, {
+    const response = await fetch(`${API_BASE_URL}/social/accounts/${accountId}/impact`, {
       credentials: "include",
     });
 
@@ -171,7 +170,7 @@ export const useSocialAccounts = () => {
       try {
         setDisconnecting(true);
         setSuccessMessage(null);
-        const response = await fetch(`${API_BASE_URL}/api/social/accounts/${accountId}`, {
+        const response = await fetch(`${API_BASE_URL}/social/accounts/${accountId}`, {
           method: "DELETE",
           credentials: "include",
         });
@@ -209,7 +208,7 @@ export const useSocialAccounts = () => {
 
     try {
       setSelectionSubmitting(true);
-      const response = await fetch(`${API_BASE_URL}/api/social/meta/link`, {
+      const response = await fetch(`${API_BASE_URL}/social/meta/link`, {
         method: "POST",
         credentials: "include",
         headers: {
