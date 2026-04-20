@@ -4,7 +4,6 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const API_BASE_URL = "/api";
-
 type Status = "loading" | "error";
 
 function WhatsAppLoginContent() {
@@ -23,7 +22,7 @@ function WhatsAppLoginContent() {
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/whatsapp-link-login`, {
+        const response = await fetch(`${API_BASE_URL}/auth/whatsapp-link-login`, {
           method: "POST",
           credentials: "include",
           headers: {

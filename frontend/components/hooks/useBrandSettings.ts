@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const API_BASE_URL = "/api";
-
 export interface BrandSettings {
   id: string;
   brandName: string;
@@ -45,7 +44,7 @@ export const useBrandSettings = () => {
   const fetchBrands = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/brand`, {
+      const response = await fetch(`${API_BASE_URL}/brand`, {
         credentials: "include",
       });
 
@@ -101,7 +100,7 @@ export const useBrandSettings = () => {
       try {
         setSaving(true);
         setSuccessMessage(null);
-        const response = await fetch(`${API_BASE_URL}/api/brand/${brandId}`, {
+        const response = await fetch(`${API_BASE_URL}/brand/${brandId}`, {
           method: "PATCH",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -143,7 +142,7 @@ export const useBrandSettings = () => {
       try {
         setRegenerating(true);
         setSuccessMessage(null);
-        const response = await fetch(`${API_BASE_URL}/api/content/calendar/generate`, {
+        const response = await fetch(`${API_BASE_URL}/content/calendar/generate`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
