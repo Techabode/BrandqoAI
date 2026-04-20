@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const API_BASE_URL = "/api";
-
 export const useAuthForm = () => {
   const router = useRouter();
 
@@ -48,7 +47,7 @@ export const useAuthForm = () => {
     setLoading(true);
     try {
       const endpoint =
-        mode === "login" ? "/api/auth/login" : "/api/auth/register";
+        mode === "login" ? "/auth/login" : "/auth/register";
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,7 +74,7 @@ export const useAuthForm = () => {
           setFormData((prev) => ({ ...prev, password: "" })); // Clear sensitive data
         }
       } else {
-        const meResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
           method: "GET",
           credentials: "include",
           cache: "no-store",
