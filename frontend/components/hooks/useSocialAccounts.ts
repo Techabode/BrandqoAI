@@ -144,7 +144,7 @@ export const useSocialAccounts = () => {
     setSubmitting(true);
     setSuccessMessage(null);
     setError(null);
-    const url = new URL(`${window.location.origin}/social/meta/connect`);
+    const url = new URL(`${window.location.origin}/api/social/meta/connect`);
     url.searchParams.set("platform", platform);
     url.searchParams.set("origin", "dashboard");
     url.searchParams.set("redirect", "/dashboard");
