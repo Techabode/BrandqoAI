@@ -19,22 +19,24 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
 
   const token = authHeader.substring("Bearer ".length);
 
+  let payload: { userId: string };
   try {
-    const payload = jwt.verify(token, env.jwtSecret) as { userId: string };
-    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
-    if (!user) {
-      return res.status(401).json({ message: "User not found" });
-    }
-
-    req.user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-    };
-
-    return next();
+    payload = jwt.verify(token, env.jwtSecret) as { userId: string };
   } catch {
     return res.status(401).json({ message: "Invalid token" });
   }
+
+  const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+  if (!user) {
+    return res.status(401).json({ message: "User not found" });
+  }
+
+  req.user = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+  };
+
+  return next();
 };
 

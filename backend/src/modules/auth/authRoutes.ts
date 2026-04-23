@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { registerHandler, loginHandler, meHandler } from "./authController";
 import { requireAuth } from "./authMiddleware";
+import { asyncHandler } from "../../http/asyncHandler";
 
 /**
  * @swagger
@@ -43,7 +44,7 @@ export const authRouter = Router();
  *       409:
  *         description: Email already registered
  */
-authRouter.post("/register", registerHandler);
+authRouter.post("/register", asyncHandler(registerHandler));
 
 /**
  * @swagger
@@ -75,7 +76,7 @@ authRouter.post("/register", registerHandler);
  *       401:
  *         description: Invalid credentials
  */
-authRouter.post("/login", loginHandler);
+authRouter.post("/login", asyncHandler(loginHandler));
 
 /**
  * @swagger
@@ -91,5 +92,5 @@ authRouter.post("/login", loginHandler);
  *       401:
  *         description: Unauthenticated
  */
-authRouter.get("/me", requireAuth, meHandler);
+authRouter.get("/me", asyncHandler(requireAuth), meHandler);
 

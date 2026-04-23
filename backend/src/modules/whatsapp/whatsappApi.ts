@@ -1,4 +1,5 @@
 import { env } from "../../config/env";
+import { logger } from "../../lib/logger";
 
 interface WhatsAppTextMessagePayload {
   to: string;
@@ -9,8 +10,7 @@ const WHATSAPP_API_BASE = "https://graph.facebook.com/v20.0";
 
 export const sendWhatsAppTextMessage = async (payload: WhatsAppTextMessagePayload) => {
   if (!env.whatsappAccessToken || !env.whatsappPhoneNumberId) {
-    // eslint-disable-next-line no-console
-    console.warn("WhatsApp credentials not configured; skipping send");
+    logger.warn("WhatsApp credentials not configured; skipping send");
     return;
   }
 
@@ -33,8 +33,10 @@ export const sendWhatsAppTextMessage = async (payload: WhatsAppTextMessagePayloa
   });
 
   if (!response.ok) {
-    // eslint-disable-next-line no-console
-    console.error("Failed to send WhatsApp message", await response.text());
+    logger.error("Failed to send WhatsApp message", await response.text(), {
+      status: response.status,
+      statusText: response.statusText,
+    });
   }
 };
 
