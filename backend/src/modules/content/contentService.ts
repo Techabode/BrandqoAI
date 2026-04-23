@@ -1,16 +1,109 @@
+import { env } from "../../config/env";
 import { prisma } from "../../db/client";
+import { generateContentWithAI } from "../ai/aiService";
+import type {
+  AIModelPreference,
+  ContentGenerationRequest,
+  GeneratedContentItem,
+} from "../ai/aiTypes";
 
 interface GenerateContentParams {
   brandId: string;
   userPrompt: string;
+  platform?: "INSTAGRAM" | "FACEBOOK" | "TWITTER";
+  count?: number;
+  textModel?: AIModelPreference;
+  imageModel?: AIModelPreference;
 }
 
 interface GeneratedPostTemplate {
   caption: string;
-  imagePrompt: string;
+  imagePrompt?: string;
+  imageUrl?: string;
 }
 
-export const generateTestContentForBrand = async (
+interface BrandWithPreferences {
+  id: string;
+  brandName: string;
+  industry: string | null;
+  targetAudience: string | null;
+  toneOfVoice: string | null;
+  keywords: string | null;
+  contentPillars: string | null;
+  preferences: {
+    postingFrequency: string | null;
+    bannedTopics: string | null;
+    languages: string | null;
+  } | null;
+}
+
+const imageIntentPattern =
+  /\b(image|poster|flyer|design|creative|visual|graphic|banner|ad|carousel)\b/i;
+const textOnlyPattern = /\b(text only|caption only|no image|without image)\b/i;
+
+const requiresImage = (prompt: string) => {
+  if (textOnlyPattern.test(prompt)) return false;
+  if (imageIntentPattern.test(prompt)) return true;
+
+  // BrandqoAI's current product flow creates post templates with poster prompts.
+  return true;
+};
+
+const appendHashtags = (caption: string, hashtags?: string[]) => {
+  if (!hashtags?.length) return caption;
+
+  const tags = hashtags
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`));
+
+  if (!tags.length) return caption;
+  if (tags.some((tag) => caption.includes(tag))) return caption;
+
+  return `${caption}\n\n${tags.join(" ")}`;
+};
+
+const toContentRequest = (
+  brand: BrandWithPreferences | null,
+  params: GenerateContentParams
+): ContentGenerationRequest | null => {
+  if (!brand) return null;
+
+  return {
+    brand: {
+      brandName: brand.brandName,
+      industry: brand.industry,
+      targetAudience: brand.targetAudience,
+      toneOfVoice: brand.toneOfVoice,
+      keywords: brand.keywords,
+      contentPillars: brand.contentPillars,
+      postingFrequency: brand.preferences?.postingFrequency,
+      bannedTopics: brand.preferences?.bannedTopics,
+      languages: brand.preferences?.languages,
+    },
+    userPrompt: params.userPrompt,
+    platform: params.platform ?? "INSTAGRAM",
+    count: params.count ?? 3,
+    image: {
+      required: requiresImage(params.userPrompt),
+      generationEnabled:
+        env.enableImageGeneration ||
+        Boolean(params.imageModel?.model || env.contentImageModel),
+      preference: params.imageModel,
+    },
+    textPreference: params.textModel,
+  };
+};
+
+const toPostTemplates = (items: GeneratedContentItem[]): GeneratedPostTemplate[] => {
+  return items.map((item) => ({
+    caption: appendHashtags(item.caption, item.hashtags),
+    imagePrompt: item.imagePrompt,
+    imageUrl: item.imageUrl,
+  }));
+};
+
+export const generateContentForBrand = async (
   params: GenerateContentParams
 ): Promise<GeneratedPostTemplate[]> => {
   const brand = await prisma.brandProfile.findUnique({
@@ -20,43 +113,37 @@ export const generateTestContentForBrand = async (
     },
   });
 
-  if (!brand) {
+  const request = toContentRequest(brand, params);
+  if (!request || !brand) {
     return [];
   }
 
-  const basePrompt = [
-    `Brand name: ${brand.brandName}`,
-    brand.industry ? `Industry: ${brand.industry}` : null,
-    brand.targetAudience ? `Target audience: ${brand.targetAudience}` : null,
-    brand.toneOfVoice ? `Tone of voice: ${brand.toneOfVoice}` : null,
-    brand.contentPillars ? `Content pillars: ${brand.contentPillars}` : null,
-    `User request: ${params.userPrompt}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const items = await generateContentWithAI(request);
+  if (!items.length) {
+    return [];
+  }
 
-  // Placeholder deterministic generation for MVP; swap with real LLM later.
-  const ideas: GeneratedPostTemplate[] = [
-    {
-      caption: `✨ ${brand.brandName}: ${params.userPrompt} (hero post)\n\nTell your audience what is new, why it matters, and how it helps them in 2–3 short paragraphs.`,
-      imagePrompt: `Minimal, bold poster for ${brand.brandName}, highlighting: ${params.userPrompt}. Clean typography, high contrast, social-media ready.`,
-    },
-    {
-      caption: `💡 Behind the scenes: ${params.userPrompt}\n\nExplain the story and motivation in a friendly, human tone. End with a clear call to action.`,
-      imagePrompt: `Warm, behind-the-scenes style illustration for ${brand.brandName}, showing creative process around: ${params.userPrompt}.`,
-    },
-  ];
+  const ideas = toPostTemplates(items);
+  const description = [
+    `Prompt: ${params.userPrompt}`,
+    `Provider: ${request.textPreference?.provider ?? env.aiProvider}`,
+    `Text model: ${request.textPreference?.model ?? env.contentTextModel ?? "default"}`,
+    request.image.generationEnabled
+      ? `Image model: ${request.image.preference?.model ?? env.contentImageModel ?? "default"}`
+      : "Image generation: disabled",
+  ].join("\n");
 
   await prisma.contentIdea.create({
     data: {
       brandId: brand.id,
-      title: `Auto-generated ideas for: ${params.userPrompt}`,
-      description: basePrompt.slice(0, 500),
+      title: `Generated content for: ${params.userPrompt}`,
+      description: description.slice(0, 500),
       postTemplates: {
-        create: ideas.map((idea) => ({
-          platform: "INSTAGRAM",
-          caption: idea.caption,
-          imagePrompt: idea.imagePrompt,
+        create: items.map((item) => ({
+          platform: item.platform,
+          caption: appendHashtags(item.caption, item.hashtags),
+          imagePrompt: item.imagePrompt,
+          imageUrl: item.imageUrl,
           status: "DRAFT",
           brand: { connect: { id: brand.id } },
         })),
@@ -67,3 +154,4 @@ export const generateTestContentForBrand = async (
   return ideas;
 };
 
+export const generateTestContentForBrand = generateContentForBrand;

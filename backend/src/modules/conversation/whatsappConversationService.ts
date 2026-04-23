@@ -133,7 +133,15 @@ export const handleIncomingWhatsAppText = async (params: HandleIncomingMessagePa
       const previewLines = ideas
         .map(
           (idea, index) =>
-            `Idea ${index + 1}:\nCaption:\n${idea.caption}\n\nImage prompt:\n${idea.imagePrompt}`
+            [
+              `Idea ${index + 1}:`,
+              "Caption:",
+              idea.caption,
+              idea.imagePrompt ? `\nImage prompt:\n${idea.imagePrompt}` : null,
+              idea.imageUrl ? `\nImage URL:\n${idea.imageUrl}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n")
         )
         .join("\n\n---\n\n");
 
